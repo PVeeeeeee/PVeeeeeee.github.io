@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CINESCOLHE — Qual Filme Escolher?</title>
+  
+  <!-- Fontes e Ícones -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- CDNs JSZip e PapaParse -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #0f1015;
+      --bg-card: #181a20;
+      --bg-card-hover: #22252e;
+      --primary: #a29bfe;
+      --primary-hover: #81ecec;
+      --accent: #e50914;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --border-color: #2a2e39;
+      --radius: 12px;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      --font-title: 'Cinzel', serif;
+      --font-body: 'Inter', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+
+    header {
+      background: rgba(15, 16, 21, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-family: var(--font-title);
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    main {
+      flex: 1;
+      max-width: 950px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 1.5rem;
+      position: relative;
+    }
+
+    .view-section {
+      display: none;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .view-section.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 2rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 1.5rem;
+    }
+
+    h1, h2 {
+      font-family: var(--font-title);
+      color: var(--primary);
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    .dropzone {
+      border: 2px dashed var(--border-color);
+      border-radius: var(--radius);
+      padding: 2rem 1.5rem;
+      background: rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .dropzone:hover {
+      border-color: var(--primary);
+      background: rgba(162, 155, 254, 0.05);
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      color: var(--text-main);
+    }
+
+    select, input[type="text"] {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+
+    select:focus, input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .modes-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .mode-option {
+      background: rgba(0,0,0,0.2);
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 1rem;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .mode-option:hover, .mode-option.active {
+      border-color: var(--primary);
+      background: rgba(162, 155, 254, 0.1);
+    }
+
+    .btn {
+      background: var(--primary);
+      color: #121212;
+      border: none;
+      padding: 0.85rem 1.5rem;
+      border-radius: var(--radius);
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-roulette {
+      background: linear-gradient(135deg, #e50914, #ff5252);
+      color: #fff;
+      font-size: 1.1rem;
+      box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4);
+      margin-bottom: 1rem;
+    }
+
+    .btn-roulette:hover {
+      background: linear-gradient(135deg, #b80710, #e50914);
+      transform: scale(1.02);
+    }
+
+    .btn-danger {
+      background: rgba(229, 9, 20, 0.2);
+      color: #ff5252;
+      border: 1px solid rgba(229, 9, 20, 0.4);
+      margin-top: 1rem;
+    }
+
+    .btn-danger:hover {
+      background: rgba(229, 9, 20, 0.4);
+    }
+
+    .progress-bar-bg {
+      background: var(--border-color);
+      height: 10px;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+
+    .progress-bar-fill {
+      background: var(--primary);
+      height: 100%;
+      width: 0%;
+      transition: width 0.2s ease;
+    }
+
+    /* CARD FLUTUANTE DE EXCLUSÃO (Canto Superior Direito) */
+    .last-winner-banner {
+      background: var(--bg-card);
+      border: 1px solid var(--primary);
+      border-radius: var(--radius);
+      padding: 0.75rem;
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      max-width: 320px;
+      margin-left: auto;
+      margin-bottom: 1rem;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .last-winner-poster {
+      width: 45px;
+      height: 65px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: #000;
+      flex-shrink: 0;
+    }
+
+    .last-winner-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      font-size: 0.75rem;
+    }
+
+    .last-winner-title {
+      font-weight: 700;
+      color: #fff;
+      font-size: 0.82rem;
+      line-height: 1.1;
+    }
+
+    .last-winner-actions {
+      display: flex;
+      gap: 0.3rem;
+      margin-top: 0.2rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-mini {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.7rem;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-dark);
+      color: var(--text-main);
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn-mini:hover {
+      background: var(--border-color);
+    }
+
+    .btn-mini.yes {
+      background: rgba(229, 9, 20, 0.2);
+      color: #ff5252;
+      border-color: rgba(229, 9, 20, 0.4);
+    }
+
+    .btn-mini.yes:hover {
+      background: rgba(229, 9, 20, 0.4);
+    }
+
+    /* Área do Jogo */
+    .comparison-container {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 1.5rem;
+      align-items: start;
+      margin-top: 1.5rem;
+    }
+
+    .movie-card {
+      background: #0b0b0b;
+      border: 3px solid var(--border-color);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: transform 0.2s, border-color 0.2s;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .movie-card:hover {
+      border-color: var(--primary);
+      box-shadow: 0 8px 25px rgba(162, 155, 254, 0.3);
+    }
+
+    .poster-box {
+      width: 100%;
+      aspect-ratio: 2 / 3;
+      background: #151515;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .poster-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .poster-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-muted);
+    }
+
+    .rating-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(15, 16, 21, 0.88);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 215, 0, 0.5);
+      color: #ffd700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      z-index: 5;
+    }
+
+    .movie-details {
+      padding: 1rem;
+      background: var(--bg-card);
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      cursor: pointer;
+    }
+
+    .movie-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .movie-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .info-drawer-toggle {
+      background: var(--bg-dark);
+      color: var(--primary);
+      border: none;
+      border-top: 1px solid var(--border-color);
+      padding: 0.6rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      width: 100%;
+      transition: background 0.2s;
+    }
+
+    .info-drawer-toggle:hover {
+      background: rgba(162, 155, 254, 0.1);
+    }
+
+    .info-drawer-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s ease-out, padding 0.35s ease;
+      background: rgba(15, 16, 21, 0.95);
+      border-top: 1px dashed var(--border-color);
+      font-size: 0.82rem;
+      color: var(--text-main);
+      padding: 0 0.8rem;
+    }
+
+    .info-drawer-content.open {
+      max-height: 300px;
+      padding: 0.8rem;
+      overflow-y: auto;
+    }
+
+    .drawer-section {
+      margin-bottom: 0.6rem;
+    }
+
+    .drawer-section strong {
+      color: var(--primary);
+      display: block;
+      margin-bottom: 0.2rem;
+    }
+
+    .vs-badge {
+      font-family: var(--font-title);
+      font-weight: 900;
+      font-size: 1.5rem;
+      color: var(--accent);
+      background: rgba(229, 9, 20, 0.1);
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--accent);
+      margin-top: 120px;
+    }
+
+    /* Modal Generico e Roleta */
+    .modal-overlay {
+      position: fixed;
+      top:0; left:0; right:0; bottom:0;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    .modal-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      max-width: 450px;
+      width: 90%;
+      box-shadow: var(--shadow);
+    }
+
+    .roulette-wheel-container {
+      width: 300px;
+      height: 300px;
+      position: relative;
+      border-radius: 50%;
+      border: 8px solid var(--primary);
+      box-shadow: 0 0 30px rgba(162, 155, 254, 0.5);
+      overflow: hidden;
+      margin: 1.5rem 0;
+    }
+
+    .roulette-wheel {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      transition: transform 4s cubic-bezier(0.15, 0.99, 0.18, 0.99);
+      display: flex;
+    }
+
+    .wheel-half {
+      width: 50%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+      box-sizing: border-box;
+      word-wrap: break-word;
+    }
+
+    .wheel-half.half-a { background: #e50914; color: #fff; }
+    .wheel-half.half-b { background: #6c5ce7; color: #fff; }
+
+    .roulette-pointer {
+      width: 0; height: 0; 
+      border-left: 15px solid transparent;
+      border-right: 15px solid transparent;
+      border-top: 25px solid #ffd700;
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+    }
+
+    .winner-box {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .winner-poster {
+      width: 220px;
+      aspect-ratio: 2/3;
+      border-radius: var(--radius);
+      border: 4px solid var(--primary);
+      object-fit: cover;
+      box-shadow: 0 0 30px rgba(162, 155, 254, 0.4);
+    }
+
+    .storage-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(162, 155, 254, 0.15);
+      color: var(--primary);
+      padding: 0.4rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .remove-list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 650px) {
+      .comparison-container { grid-template-columns: 1fr; }
+      .vs-badge { margin: 0 auto; }
+      .modes-grid { grid-template-columns: 1fr; }
+      .last-winner-banner { max-width: 100%; margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="#" class="brand" onclick="location.reload()">
+      <i class="fa-solid fa-film"></i>
+      <span>CINESCOLHE</span>
+    </a>
+  </header>
+
+  <main>
+    <!-- 1. CONFIGURAÇÃO & IMPORTAÇÃO -->
+    <section id="view-setup" class="view-section active">
+
+      <!-- PERGUNTA FLUTUANTE DE EXCLUSÃO DO ÚLTIMO VENCEDOR (No Canto Superior Direito) -->
+      <div id="last-winner-banner" class="last-winner-banner" style="display:none;">
+        <img id="lw-poster" class="last-winner-poster" src="" alt="Poster">
+        <div class="last-winner-info">
+          <div>Excluir do banco de dados o último filme escolhido?</div>
+          <div class="last-winner-title" id="lw-title">Nome do Filme</div>
+          <div class="last-winner-actions">
+            <button type="button" class="btn-mini yes" onclick="confirmDeleteLastWinner()"><i class="fa-solid fa-check"></i> Sim</button>
+            <button type="button" class="btn-mini" onclick="dismissLastWinnerBanner()"><i class="fa-solid fa-xmark"></i> Não</button>
+            <button type="button" class="btn-mini" onclick="openCustomDeleteModal()"><i class="fa-solid fa-list-check"></i> Escolher outro</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-panel">
+        <h1>CINESCOLHE</h1>
+        <p style="text-align:center; color: var(--text-muted); margin-bottom: 1.5rem;">
+          Escolha o filme ideal comparando suas listas do Letterboxd.
+        </p>
+
+        <div id="storage-status" style="display:none; text-align:center;">
+          <div class="storage-badge">
+            <i class="fa-solid fa-database"></i> <span id="storage-msg">Dados salvos no navegador</span>
+          </div>
+        </div>
+
+        <div class="dropzone" id="dropzone" onclick="document.getElementById('file-input').click()">
+          <i class="fa-solid fa-file-zipper fa-3x" style="color:var(--text-muted); margin-bottom:0.8rem"></i>
+          <h3 id="file-label">Clique ou arraste seu arquivo ZIP/CSV do Letterboxd</h3>
+          <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0.3rem">Exportado de Settings > Import & Export no Letterboxd</p>
+          <input type="file" id="file-input" accept=".zip, .csv" style="display:none" onchange="handleFileSelect(event)">
+        </div>
+
+        <div id="config-options" style="display:none;">
+          <div class="form-group" id="zip-source-group" style="display:none;">
+            <label for="csv-source-select"><i class="fa-solid fa-folder-open"></i> Origem dos Filmes (Lista):</label>
+            <select id="csv-source-select"></select>
+          </div>
+
+          <div class="form-group">
+            <label for="sample-size-select"><i class="fa-solid fa-dice"></i> Quantidade de Filmes Sorteados:</label>
+            <select id="sample-size-select">
+              <option value="8">Top 8 Filmes (Mata-Mata Curto)</option>
+              <option value="16" selected>Top 16 Filmes (Torneio Padrão)</option>
+              <option value="32">Top 32 Filmes (Torneio Longo)</option>
+              <option value="64">Top 64 Filmes (Maratona)</option>
+              <option value="all">Todos os Filmes da Lista</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label><i class="fa-solid fa-trophy"></i> Formato da Disputa:</label>
+            <div class="modes-grid">
+              <div class="mode-option active" onclick="selectMode('tradicional')" id="mode-tradicional">
+                <i class="fa-solid fa-sitemap fa-1x" style="margin-bottom:0.3rem"></i>
+                <div><strong>Mata-Mata</strong></div>
+                <small style="color:var(--text-muted)">Chaveamento eliminatório tradicional</small>
+              </div>
+              <div class="mode-option" onclick="selectMode('ranking')" id="mode-ranking">
+                <i class="fa-solid fa-crown fa-1x" style="margin-bottom:0.3rem"></i>
+                <div><strong>Rei da Mesa</strong></div>
+                <small style="color:var(--text-muted)">O vencedor da rodada continua desafiando</small>
+              </div>
+            </div>
+          </div>
+
+          <button type="button" class="btn" onclick="startTournament()">
+            <i class="fa-solid fa-play"></i> INICIAR DISPUTA
+          </button>
+
+          <button type="button" class="btn btn-danger" onclick="clearStoredData()">
+            <i class="fa-solid fa-trash"></i> Apagar Todos os Dados Salvos
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. CARREGAMENTO DAS MÍDIAS -->
+    <section id="view-loading" class="view-section">
+      <div class="card-panel" style="text-align:center;">
+        <h2><i class="fa-solid fa-spinner fa-spin"></i> BUSCANDO DADOS E MÍDIAS</h2>
+        <p id="loading-status-text" style="color:var(--text-muted); margin-bottom: 1rem;">Obtendo sinopses, diretores e elenco em PT-BR...</p>
+        <div class="progress-bar-bg">
+          <div id="loading-progress-bar" class="progress-bar-fill"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. TELA DE JOGO / COMPARAÇÃO -->
+    <section id="view-game" class="view-section">
+      <div class="card-panel">
+        <h2 id="round-title">QUAL VOCÊ PREFERE?</h2>
+        <p id="round-info" style="text-align:center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;"></p>
+
+        <button type="button" id="btn-roulette-final" class="btn btn-roulette" style="display:none;" onclick="triggerRoulette()">
+          <i class="fa-solid fa-dharmachakra"></i> Girar Roleta para Decidir o Vencedor!
+        </button>
+
+        <div class="comparison-container">
+          <!-- Card 1 -->
+          <div class="movie-card">
+            <div class="poster-box" onclick="chooseWinner(1)">
+              <div class="rating-badge" id="m1-rating"><i class="fa-solid fa-star"></i> <span>-</span></div>
+              <img id="m1-poster" src="" style="display:none;">
+              <div id="m1-placeholder" class="poster-placeholder">
+                <i class="fa-solid fa-film fa-3x"></i>
+              </div>
+            </div>
+            <div class="movie-details" onclick="chooseWinner(1)">
+              <div class="movie-title" id="m1-title">Filme 1</div>
+              <div class="movie-meta" id="m1-year">2023</div>
+            </div>
+            <button type="button" class="info-drawer-toggle" onclick="toggleDrawer(1)">
+              <i class="fa-solid fa-circle-info"></i> Details / Sinopse <i class="fa-solid fa-chevron-down" id="m1-chevron"></i>
+            </button>
+            <div class="info-drawer-content" id="m1-drawer">
+              <div class="drawer-section">
+                <strong><i class="fa-solid fa-clapperboard"></i> Direção:</strong>
+                <span id="m1-director">Buscando...</span>
+              </div>
+              <div class="drawer-section">
+                <strong><i class="fa-solid fa-users"></i> Elenco:</strong>
+                <span id="m1-cast">Buscando...</span>
+              </div>
+              <div class="drawer-section">
+                <strong><i class="fa-solid fa-align-left"></i> Sinopse:</strong>
+                <span id="m1-overview">Sem sinopse disponível em português.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="vs-badge">VS</div>
+
+          <!-- Card 2 -->
+          <div class="movie-card">
+            <div class="poster-box" onclick="chooseWinner(2)">
+              <div class="rating-badge" id="m2-rating"><i class="fa-solid fa-star"></i> <span>-</span></div>
+              <img id="m2-poster" src="" style="display:none;">
+              <div id="m2-placeholder" class="poster-placeholder">
+                <i class="fa-solid fa-film fa-3x"></i>
+              </div>
+            </div>
+            <div class="movie-details" onclick="chooseWinner(2)">
+              <div class="movie-title" id="m2-title">Filme 2</div>
+              <div class="movie-meta" id="m2-year">2023</div>
+            </div>
+            <button type="button" class="info-drawer-toggle" onclick="toggleDrawer(2)">
+              <i class="fa-solid fa-circle-info"></i> Details / Sinopse <i class="fa-solid fa-chevron-down" id="m2-chevron"></i>
+            </button>
+            <div class="info-drawer-content" id="m2-drawer">
+              <div class="drawer-section">
+                <strong><i class="fa-solid fa-clapperboard"></i> Direção:</strong>
+                <span id="m2-director">Buscando...</span>
+              </div>
+              <div class="drawer-section">
+                <strong><i class="fa-solid fa-users"></i> Elenco:</strong>
+                <span id="m2-cast">Buscando...</span>
+              </div>
+              <div class="drawer-section">
+                <strong><i class="fa-solid fa-align-left"></i> Sinopse:</strong>
+                <span id="m2-overview">Sem sinopse disponível em português.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. VENCEDOR SUPREMO -->
+    <section id="view-result" class="view-section">
+      <div class="card-panel winner-box">
+        <i class="fa-solid fa-trophy fa-3x" style="color: #ffd700;"></i>
+        <h2>O FILME ESCOLHIDO É:</h2>
+        <img id="winner-poster" class="winner-poster" src="">
+        <h1 id="winner-title" style="color: #fff; margin-bottom: 0;">Nome do Filme</h1>
+        <p id="winner-year" style="color: var(--text-muted); margin-bottom: 1.5rem;">(2023)</p>
+
+        <button type="button" class="btn" onclick="finishSessionAndGoHome()">
+          <i class="fa-solid fa-house"></i> Ir para o Menu Inicial
+        </button>
+      </div>
+    </section>
+
+    <!-- MODAL DA ROLETA -->
+    <div class="modal-overlay" id="roulette-modal">
+      <h2 style="color:#fff;">GIRANDO A ROLETA DA DECISÃO...</h2>
+      <div class="roulette-wheel-container">
+        <div class="roulette-pointer"></div>
+        <div class="roulette-wheel" id="roulette-wheel">
+          <div class="wheel-half half-a" id="wheel-title-a">Opção A</div>
+          <div class="wheel-half half-b" id="wheel-title-b">Opção B</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL PARA EXCLUIR OUTRO FILME -->
+    <div class="modal-overlay" id="custom-delete-modal">
+      <div class="modal-box">
+        <h3 style="color:var(--primary); margin-bottom: 1rem;"><i class="fa-solid fa-trash"></i> Escolha um filme para retirar:</h3>
+        <input type="text" id="search-remove-input" placeholder="Digite o nome do filme..." oninput="filterRemoveList()" style="margin-bottom: 1rem;">
+        <div id="remove-list-container" style="max-height: 250px; overflow-y: auto; margin-bottom: 1rem;"></div>
+        <button type="button" class="btn btn-danger" onclick="closeCustomDeleteModal()">Fechar</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // O site agora usa um proxy do TMDB para não expor sua chave no GitHub Pages.
+    // Depois de criar o Cloudflare Worker, coloque a URL dele abaixo.
+    const TMDB_PROXY_URL = "COLE_AQUI_A_URL_DO_SEU_WORKER";
+    const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
+
+    async function tmdbFetch(pathAndQuery) {
+      if (!TMDB_PROXY_URL || TMDB_PROXY_URL.includes("COLE_AQUI")) {
+        throw new Error("Configure a URL do proxy TMDB em TMDB_PROXY_URL.");
+      }
+      const base = TMDB_PROXY_URL.replace(/\/$/, "");
+      const separator = pathAndQuery.includes("?") ? "&" : "?";
+      const res = await fetch(base + pathAndQuery + separator + "via=cinescolhe");
+      if (!res.ok) throw new Error(`TMDB proxy HTTP ${res.status}`);
+      return res.json();
+    }
+    const STORAGE_KEY = "cinescolhe_data_v3";
+
+    let loadedCsvEntries = {};
+    let selectedMoviesList = [];
+    let activeQueue = [];
+    let nextQueue = [];
+    let currentKing = null;
+    let movieA = null;
+    let movieB = null;
+    let selectedMode = 'tradicional';
+    let tmdbCache = {};
+    let lastWinnerMovie = null;
+
+    function switchView(viewId) {
+      document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+      document.getElementById(`view-${viewId}`)?.classList.add('active');
+
+      if (viewId === 'setup') {
+        checkLastWinnerBanner();
+      }
+    }
+
+    function saveToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ loadedCsvEntries, tmdbCache, lastWinnerMovie }));
+      } catch (e) { console.warn("Erro ao salvar cache local", e); }
+    }
+
+    function loadFromStorage() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return false;
+      try {
+        const data = JSON.parse(raw);
+        if (data && data.loadedCsvEntries && Object.keys(data.loadedCsvEntries).length > 0) {
+          loadedCsvEntries = data.loadedCsvEntries;
+          tmdbCache = data.tmdbCache || {};
+          lastWinnerMovie = data.lastWinnerMovie || null;
+          return true;
+        }
+      } catch (e) { console.error("Erro ao carregar dados", e); }
+      return false;
+    }
+
+    function clearStoredData() {
+      if (confirm("Deseja apagar todos os dados salvos no navegador?")) {
+        localStorage.removeItem(STORAGE_KEY);
+        location.reload();
+      }
+    }
+
+    /* Lógica do Banner de Exclusão do Último Vencedor */
+    function checkLastWinnerBanner() {
+      const banner = document.getElementById('last-winner-banner');
+      if (lastWinnerMovie) {
+        document.getElementById('lw-title').innerText = lastWinnerMovie.titlePtBr || lastWinnerMovie.name;
+        const posterEl = document.getElementById('lw-poster');
+        if (lastWinnerMovie.poster) {
+          posterEl.src = lastWinnerMovie.poster;
+          posterEl.style.display = 'block';
+        } else {
+          posterEl.style.display = 'none';
+        }
+        banner.style.display = 'flex';
+      } else {
+        banner.style.display = 'none';
+      }
+    }
+
+    function dismissLastWinnerBanner() {
+      lastWinnerMovie = null;
+      saveToStorage();
+      document.getElementById('last-winner-banner').style.display = 'none';
+    }
+
+    function confirmDeleteLastWinner() {
+      if (!lastWinnerMovie) return;
+      removeMovieFromAllLists(lastWinnerMovie.name);
+      alert(`"${lastWinnerMovie.titlePtBr || lastWinnerMovie.name}" foi removido do seu banco de dados!`);
+      dismissLastWinnerBanner();
+      setupSourceDropdown();
+    }
+
+    function removeMovieFromAllLists(movieName) {
+      const targetName = movieName.toLowerCase().trim();
+      Object.keys(loadedCsvEntries).forEach(listKey => {
+        loadedCsvEntries[listKey] = loadedCsvEntries[listKey].filter(item => {
+          const name = getPropIgnoreCase(item, ['Name', 'Title', 'Film', 'Movie']).toLowerCase().trim();
+          return name !== targetName;
+        });
+      });
+      saveToStorage();
+    }
+
+    /* Modal de Remoção Personalizada */
+    function openCustomDeleteModal() {
+      document.getElementById('custom-delete-modal').style.display = 'flex';
+      filterRemoveList();
+    }
+
+    function closeCustomDeleteModal() {
+      document.getElementById('custom-delete-modal').style.display = 'none';
+    }
+
+    function filterRemoveList() {
+      const query = document.getElementById('search-remove-input').value.toLowerCase();
+      const sourceKey = document.getElementById('csv-source-select').value || Object.keys(loadedCsvEntries)[0];
+      const rows = loadedCsvEntries[sourceKey] || [];
+      const container = document.getElementById('remove-list-container');
+      container.innerHTML = '';
+
+      const filtered = rows.filter(r => {
+        const name = getPropIgnoreCase(r, ['Name', 'Title', 'Film', 'Movie']);
+        return name.toLowerCase().includes(query);
+      }).slice(0, 30);
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div style="color:var(--text-muted); text-align:center; padding:1rem;">Nenhum filme encontrado.</div>';
+        return;
+      }
+
+      filtered.forEach(item => {
+        const name = getPropIgnoreCase(item, ['Name', 'Title', 'Film', 'Movie']);
+        const div = document.createElement('div');
+        div.className = 'remove-list-item';
+        div.innerHTML = `
+          <span>${name}</span>
+          <button class="btn-mini yes" onclick="deleteCustomMovie('${name.replace(/'/g, "\\'")}')">Excluir</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function deleteCustomMovie(movieName) {
+      if (confirm(`Remover "${movieName}" do banco de dados?`)) {
+        removeMovieFromAllLists(movieName);
+        filterRemoveList();
+        setupSourceDropdown();
+      }
+    }
+
+    function safeParseCsv(text) {
+      if (typeof Papa !== 'undefined' && Papa.parse) {
+        return Papa.parse(text, { header: true, skipEmptyLines: true }).data;
+      }
+      return [];
+    }
+
+    function getPropIgnoreCase(obj, propNames) {
+      if (!obj) return '';
+      const keys = Object.keys(obj);
+      for (let p of propNames) {
+        const foundKey = keys.find(k => k.trim().toLowerCase().replace(/^\uFEFF/, '') === p.toLowerCase());
+        if (foundKey && obj[foundKey]) return obj[foundKey].toString().trim();
+      }
+      return '';
+    }
+
+    async function handleFileSelect(e) {
+      const files = e.target.files;
+      if (!files || files.length === 0) return;
+      const file = files[0];
+
+      document.getElementById('file-label').innerText = `Carregando: ${file.name}...`;
+
+      try {
+        loadedCsvEntries = {};
+        if (file.name.toLowerCase().endsWith('.zip')) {
+          const zip = await JSZip.loadAsync(file);
+          const zipPromises = [];
+
+          zip.forEach((relativePath, zipEntry) => {
+            if (!zipEntry.dir && relativePath.toLowerCase().endsWith('.csv')) {
+              zipPromises.push(
+                zipEntry.async('string').then(content => {
+                  const rows = safeParseCsv(content);
+                  if (rows.length > 0) loadedCsvEntries[relativePath] = rows;
+                })
+              );
+            }
+          });
+          await Promise.all(zipPromises);
+        } else if (file.name.toLowerCase().endsWith('.csv')) {
+          const text = await file.text();
+          loadedCsvEntries[file.name] = safeParseCsv(text);
+        }
+
+        saveToStorage();
+        setupSourceDropdown();
+      } catch (err) {
+        alert("Erro ao ler o arquivo: " + err.message);
+      }
+    }
+
+    function setupSourceDropdown() {
+      const keys = Object.keys(loadedCsvEntries);
+      if (keys.length === 0) {
+        alert("Nenhum dado de filme encontrado no arquivo!");
+        return;
+      }
+
+      const select = document.getElementById('csv-source-select');
+      select.innerHTML = '';
+
+      keys.forEach(key => {
+        const count = loadedCsvEntries[key].length;
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.innerText = `${key} (${count} itens)`;
+        if (key.toLowerCase().includes('watchlist')) opt.selected = true;
+        select.appendChild(opt);
+      });
+
+      document.getElementById('zip-source-group').style.display = keys.length > 1 ? 'block' : 'none';
+      document.getElementById('config-options').style.display = 'block';
+      document.getElementById('dropzone').style.display = 'none';
+
+      document.getElementById('storage-status').style.display = 'block';
+      document.getElementById('storage-msg').innerText = `${keys.length} lista(s) carregada(s).`;
+      checkLastWinnerBanner();
+    }
+
+    function selectMode(mode) {
+      selectedMode = mode;
+      document.querySelectorAll('.mode-option').forEach(el => el.classList.remove('active'));
+      document.getElementById(`mode-${mode}`).classList.add('active');
+    }
+
+    async function startTournament() {
+      const sourceKey = document.getElementById('csv-source-select').value || Object.keys(loadedCsvEntries)[0];
+      const rawRows = loadedCsvEntries[sourceKey] || [];
+
+      const uniqueMap = new Map();
+      rawRows.forEach(r => {
+        const name = getPropIgnoreCase(r, ['Name', 'Title', 'Film', 'Movie']);
+        const yearStr = getPropIgnoreCase(r, ['Year', 'Release Year', 'Release Date']);
+        const year = parseInt(yearStr) || 0;
+
+        if (name) {
+          const key = `${name.toLowerCase()}_${year}`;
+          if (!uniqueMap.has(key)) {
+            uniqueMap.set(key, { 
+              name, year, 
+              titlePtBr: name, 
+              poster: null, 
+              voteAverage: null,
+              overview: null,
+              director: null,
+              cast: null
+            });
+          }
+        }
+      });
+
+      let allMovies = Array.from(uniqueMap.values());
+      if (allMovies.length < 2) {
+        alert("A lista precisa ter no mínimo 2 filmes!");
+        return;
+      }
+
+      allMovies.sort(() => Math.random() - 0.5);
+
+      const sampleOption = document.getElementById('sample-size-select').value;
+      if (sampleOption !== 'all') {
+        const count = parseInt(sampleOption);
+        allMovies = allMovies.slice(0, Math.min(count, allMovies.length));
+      }
+
+      selectedMoviesList = allMovies;
+      switchView('loading');
+
+      await fetchTmdbPostersAndDetails();
+      saveToStorage();
+
+      activeQueue = [...selectedMoviesList];
+      nextQueue = [];
+
+      if (selectedMode === 'ranking') {
+        currentKing = activeQueue.shift();
+      }
+
+      switchView('game');
+      renderNextMatch();
+    }
+
+    async function fetchTmdbPostersAndDetails() {
+      let done = 0;
+      const total = selectedMoviesList.length;
+
+      for (let m of selectedMoviesList) {
+        done++;
+        const cacheKey = `${m.name.toLowerCase()}_${m.year}`;
+
+        if (tmdbCache[cacheKey]) {
+          Object.assign(m, tmdbCache[cacheKey]);
+        } else {
+          document.getElementById('loading-status-text').innerText = `Carregando mídias e detalhes: ${m.name} (${done}/${total})`;
+          document.getElementById('loading-progress-bar').style.width = `${Math.round((done / total) * 100)}%`;
+
+          try {
+            const queryYear = m.year ? `&year=${m.year}` : '';
+            const data = await tmdbFetch(`/3/search/movie?query=${encodeURIComponent(m.name)}${queryYear}&language=pt-BR`);
+            
+            if (data.results && data.results.length > 0) {
+              const best = data.results[0];
+              m.poster = best.poster_path ? (TMDB_IMAGE_BASE + best.poster_path) : null;
+              m.titlePtBr = best.title || best.original_title || m.name;
+              m.voteAverage = best.vote_average ? best.vote_average.toFixed(1) : 'N/A';
+              m.overview = best.overview || 'Sinopse não disponível em português.';
+
+              const creditData = await tmdbFetch(`/3/movie/${best.id}/credits?language=pt-BR`);
+              if (creditData) {
+                const dirObj = creditData.crew?.find(c => c.job === 'Director');
+                m.director = dirObj ? dirObj.name : 'Não informado';
+
+                const castArr = creditData.cast?.slice(0, 4).map(c => c.name) || [];
+                m.cast = castArr.length > 0 ? castArr.join(', ') : 'Não informado';
+              }
+
+              tmdbCache[cacheKey] = { 
+                poster: m.poster,
+                titlePtBr: m.titlePtBr,
+                voteAverage: m.voteAverage,
+                overview: m.overview,
+                director: m.director,
+                cast: m.cast
+              };
+            }
+          } catch(e) {}
+          await new Promise(r => setTimeout(r, 40));
+        }
+      }
+    }
+
+    function renderNextMatch() {
+      closeDrawers();
+      let isFinalRound = false;
+
+      if (selectedMode === 'tradicional') {
+        if (activeQueue.length >= 2) {
+          movieA = activeQueue.shift();
+          movieB = activeQueue.shift();
+        } else if (activeQueue.length === 1) {
+          nextQueue.push(activeQueue.shift());
+          activeQueue = [...nextQueue];
+          nextQueue = [];
+          renderNextMatch();
+          return;
+        } else {
+          if (nextQueue.length === 1) {
+            showWinner(nextQueue[0]);
+            return;
+          }
+          activeQueue = [...nextQueue];
+          nextQueue = [];
+          renderNextMatch();
+          return;
+        }
+
+        const remainingTotal = activeQueue.length + nextQueue.length + 2;
+        document.getElementById('round-info').innerText = `Restam ${remainingTotal} filmes no torneio.`;
+        if (remainingTotal === 2) isFinalRound = true;
+
+      } else {
+        if (activeQueue.length > 0) {
+          movieA = currentKing;
+          movieB = activeQueue.shift();
+          document.getElementById('round-info').innerText = `Faltam ${activeQueue.length + 1} desafiantes.`;
+          if (activeQueue.length === 0) isFinalRound = true;
+        } else {
+          showWinner(currentKing);
+          return;
+        }
+      }
+
+      document.getElementById('btn-roulette-final').style.display = isFinalRound ? 'flex' : 'none';
+
+      displayMovieCard(1, movieA);
+      displayMovieCard(2, movieB);
+    }
+
+    function displayMovieCard(num, movie) {
+      document.getElementById(`m${num}-title`).innerText = movie.titlePtBr || movie.name;
+      document.getElementById(`m${num}-year`).innerText = movie.year ? `(${movie.year})` : '';
+      document.getElementById(`m${num}-rating`).querySelector('span').innerText = movie.voteAverage || 'N/A';
+
+      document.getElementById(`m${num}-director`).innerText = movie.director || 'Não informado';
+      document.getElementById(`m${num}-cast`).innerText = movie.cast || 'Não informado';
+      document.getElementById(`m${num}-overview`).innerText = movie.overview || 'Sinopse não disponível.';
+      
+      const imgEl = document.getElementById(`m${num}-poster`);
+      const placeEl = document.getElementById(`m${num}-placeholder`);
+
+      if (movie.poster) {
+        imgEl.src = movie.poster;
+        imgEl.style.display = 'block';
+        placeEl.style.display = 'none';
+      } else {
+        imgEl.style.display = 'none';
+        placeEl.style.display = 'flex';
+      }
+    }
+
+    function toggleDrawer(num) {
+      const drawer = document.getElementById(`m${num}-drawer`);
+      const chevron = document.getElementById(`m${num}-chevron`);
+      const isOpen = drawer.classList.contains('open');
+
+      if (isOpen) {
+        drawer.classList.remove('open');
+        chevron.style.transform = 'rotate(0deg)';
+      } else {
+        drawer.classList.add('open');
+        chevron.style.transform = 'rotate(180deg)';
+      }
+    }
+
+    function closeDrawers() {
+      [1, 2].forEach(num => {
+        document.getElementById(`m${num}-drawer`)?.classList.remove('open');
+        const chev = document.getElementById(`m${num}-chevron`);
+        if (chev) chev.style.transform = 'rotate(0deg)';
+      });
+    }
+
+    function chooseWinner(choice) {
+      const selected = choice === 1 ? movieA : movieB;
+      if (selectedMode === 'tradicional') {
+        nextQueue.push(selected);
+      } else {
+        currentKing = selected;
+      }
+      renderNextMatch();
+    }
+
+    function triggerRoulette() {
+      const modal = document.getElementById('roulette-modal');
+      const wheel = document.getElementById('roulette-wheel');
+      document.getElementById('wheel-title-a').innerText = movieA.titlePtBr || movieA.name;
+      document.getElementById('wheel-title-b').innerText = movieB.titlePtBr || movieB.name;
+
+      modal.style.display = 'flex';
+      wheel.style.transition = 'none';
+      wheel.style.transform = 'rotate(0deg)';
+
+      setTimeout(() => {
+        const winnerChoice = Math.random() < 0.5 ? 1 : 2;
+        const degrees = winnerChoice === 1 ? 1440 + 90 : 1440 + 270;
+
+        wheel.style.transition = 'transform 4s cubic-bezier(0.15, 0.99, 0.18, 0.99)';
+        wheel.style.transform = `rotate(${degrees}deg)`;
+
+        setTimeout(() => {
+          modal.style.display = 'none';
+          chooseWinner(winnerChoice);
+        }, 4300);
+      }, 100);
+    }
+
+    function showWinner(winner) {
+      lastWinnerMovie = winner;
+      saveToStorage();
+
+      switchView('result');
+      document.getElementById('winner-title').innerText = winner.titlePtBr || winner.name;
+      document.getElementById('winner-year').innerText = winner.year ? `(${winner.year})` : '';
+      document.getElementById('winner-poster').src = winner.poster || '';
+    }
+
+    function finishSessionAndGoHome() {
+      switchView('setup');
+    }
+
+    const dropzone = document.getElementById('dropzone');
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); });
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (e.dataTransfer.files.length) handleFileSelect({ target: { files: e.dataTransfer.files } });
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      if (loadFromStorage()) {
+        setupSourceDropdown();
+      }
+    });
+  </script>
+</body>
+</html>
