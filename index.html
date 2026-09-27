@@ -1138,7 +1138,10 @@
                 cast: m.cast
               };
             }
-          } catch(e) {}
+          } catch(e) {
+            console.error("ERRO TMDB:", e);
+            alert("Erro ao buscar dados do TMDB para \"" + m.name + "\": " + e.message);
+          }
           await new Promise(r => setTimeout(r, 40));
         }
       }
