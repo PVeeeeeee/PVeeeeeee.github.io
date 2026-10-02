@@ -548,8 +548,8 @@
     }
 
     .roulette-wheel-container {
-      width: 300px;
-      height: 300px;
+      width: 320px;
+      height: 320px;
       position: relative;
       border-radius: 50%;
       border: 8px solid var(--primary);
@@ -564,6 +564,12 @@
       position: absolute;
       transition: transform 4s cubic-bezier(0.15, 0.99, 0.18, 0.99);
       border-radius: 50%;
+    }
+
+    .roulette-wheel svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
     }
 
     .roulette-pointer {
@@ -1291,21 +1297,22 @@
       closeDrawers();
       let isFinalRound = false;
 
-      // LÓGICA DO MODO ROLETA (4+)
+      // LÓGICA RIGOROSA DO MODO ROLETA (4+)
       if (selectedMode === 'roleta4') {
-        const totalRemaining = activeQueue.length + nextQueue.length + (movieA ? 1 : 0) + (movieB ? 1 : 0);
-        
-        // Quando restarem entre 3 e 4 filmes no total e a fila atual esvaziar, aciona a roleta final
-        if (totalRemaining <= 4 && activeQueue.length === 0) {
-          const finalCandidates = [...nextQueue];
-          if (movieA) finalCandidates.push(movieA);
-          if (movieB) finalCandidates.push(movieB);
-          
-          const uniqueFinals = Array.from(new Set(finalCandidates));
-          if (uniqueFinals.length >= 3 && uniqueFinals.length <= 4) {
-            triggerMultiRoulette(uniqueFinals);
-            return;
-          }
+        let currentCandidates = [...activeQueue, ...nextQueue];
+        if (movieA) currentCandidates.push(movieA);
+        if (movieB) currentCandidates.push(movieB);
+
+        const uniqueCandidates = Array.from(new Set(currentCandidates));
+
+        // Se restam exatamente 4 filmes no torneio (ou menos caso a lista inicial fosse menor), aciona a roleta
+        if (uniqueCandidates.length <= 4) {
+          movieA = null;
+          movieB = null;
+          activeQueue = [];
+          nextQueue = [];
+          triggerMultiRoulette(uniqueCandidates);
+          return;
         }
       }
 
@@ -1437,6 +1444,7 @@
       triggerMultiRoulette([movieA, movieB]);
     }
 
+    /* Desenha a roleta via SVG para curvar o texto ao longo das bordas das fatias */
     function triggerMultiRoulette(moviesList) {
       const modal = document.getElementById('roulette-modal');
       const wheel = document.getElementById('roulette-wheel');
@@ -1444,30 +1452,73 @@
 
       const count = moviesList.length;
       const colors = ['#e50914', '#6c5ce7', '#00b894', '#fdcb6e', '#e17055', '#0984e3'];
-      const sliceDeg = 360 / count;
+      const sliceAngle = 360 / count;
 
-      let gradientStops = [];
+      const svgNS = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(svgNS, "svg");
+      svg.setAttribute("viewBox", "0 0 320 320");
+
+      const defs = document.createElementNS(svgNS, "defs");
+      svg.appendChild(defs);
+
+      const center = 160;
+      const radius = 160;
+      const textRadius = 125; // Raio onde o arco do texto fica posicionado
+
       moviesList.forEach((m, idx) => {
-        const start = idx * sliceDeg;
-        const end = (idx + 1) * sliceDeg;
-        const color = colors[idx % colors.length];
-        gradientStops.push(`${color} ${start}deg ${end}deg`);
+        const startDeg = idx * sliceAngle;
+        const endDeg = (idx + 1) * sliceAngle;
 
-        const label = document.createElement('div');
-        label.style.position = 'absolute';
-        label.style.width = '100%';
-        label.style.height = '100%';
-        label.style.textAlign = 'center';
-        label.style.fontWeight = 'bold';
-        label.style.fontSize = '0.8rem';
-        label.style.color = '#fff';
-        label.style.paddingTop = '10px';
-        label.style.transform = `rotate(${start + sliceDeg/2}deg)`;
-        label.innerText = m.titlePtBr || m.name;
-        wheel.appendChild(label);
+        const startRad = (startDeg * Math.PI) / 180;
+        const endRad = (endDeg * Math.PI) / 180;
+
+        const x1 = center + radius * Math.cos(startRad);
+        const y1 = center + radius * Math.sin(startRad);
+        const x2 = center + radius * Math.cos(endRad);
+        const y2 = center + radius * Math.sin(endRad);
+
+        const largeArc = sliceAngle > 180 ? 1 : 0;
+
+        // Caminho da fatia
+        const path = document.createElementNS(svgNS, "path");
+        const d = `M ${center} ${center} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+        path.setAttribute("d", d);
+        path.setAttribute("fill", colors[idx % colors.length]);
+        svg.appendChild(path);
+
+        // Caminho curvo invisível para o texto
+        const pathId = `text-path-${idx}`;
+        const tx1 = center + textRadius * Math.cos(startRad);
+        const ty1 = center + textRadius * Math.sin(startRad);
+        const tx2 = center + textRadius * Math.cos(endRad);
+        const ty2 = center + textRadius * Math.sin(endRad);
+
+        const textArcPath = document.createElementNS(svgNS, "path");
+        textArcPath.setAttribute("id", pathId);
+        textArcPath.setAttribute("d", `M ${tx1} ${ty1} A ${textRadius} ${textRadius} 0 ${largeArc} 1 ${tx2} ${ty2}`);
+        defs.appendChild(textArcPath);
+
+        // Texto curvado ao longo do arco
+        const text = document.createElementNS(svgNS, "text");
+        text.setAttribute("fill", "#ffffff");
+        text.setAttribute("font-size", "12");
+        text.setAttribute("font-weight", "bold");
+        text.setAttribute("font-family", "Inter, sans-serif");
+
+        const textPath = document.createElementNS(svgNS, "textPath");
+        textPath.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", `#${pathId}`);
+        textPath.setAttribute("startOffset", "50%");
+        textPath.setAttribute("text-anchor", "middle");
+
+        let name = m.titlePtBr || m.name;
+        if (name.length > 20) name = name.substring(0, 18) + '...';
+        textPath.textContent = name;
+
+        text.appendChild(textPath);
+        svg.appendChild(text);
       });
 
-      wheel.style.background = `conic-gradient(${gradientStops.join(', ')})`;
+      wheel.appendChild(svg);
 
       modal.style.display = 'flex';
       wheel.style.transition = 'none';
@@ -1476,7 +1527,7 @@
       setTimeout(() => {
         const winnerIndex = Math.floor(Math.random() * count);
         const winner = moviesList[winnerIndex];
-        const targetDeg = 1440 + (360 - (winnerIndex * sliceDeg + sliceDeg / 2));
+        const targetDeg = 1440 + (360 - (winnerIndex * sliceAngle + sliceAngle / 2) + 90);
 
         wheel.style.transition = 'transform 4s cubic-bezier(0.15, 0.99, 0.18, 0.99)';
         wheel.style.transform = `rotate(${targetDeg}deg)`;
