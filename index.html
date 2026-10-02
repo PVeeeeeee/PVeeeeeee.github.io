@@ -154,10 +154,56 @@
       border-color: var(--primary);
     }
 
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 1rem;
+      background: rgba(162, 155, 254, 0.08);
+      padding: 0.8rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+    }
+
+    .checkbox-container input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--primary);
+    }
+
+    .lists-checklist-box {
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      max-height: 180px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .lists-checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .lists-checklist-item input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
     .modes-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.75rem;
       margin-bottom: 1.5rem;
     }
 
@@ -165,7 +211,7 @@
       background: rgba(0,0,0,0.2);
       border: 2px solid var(--border-color);
       border-radius: var(--radius);
-      padding: 1rem;
+      padding: 0.8rem 0.5rem;
       cursor: pointer;
       text-align: center;
       transition: all 0.2s;
@@ -221,6 +267,26 @@
       background: rgba(229, 9, 20, 0.4);
     }
 
+    .btn-skip {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      padding: 0.5rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 0.5rem;
+      transition: all 0.2s;
+    }
+
+    .btn-skip:hover {
+      background: rgba(229, 9, 20, 0.2);
+      color: #ff5252;
+      border-color: rgba(229, 9, 20, 0.4);
+    }
+
     .progress-bar-bg {
       background: var(--border-color);
       height: 10px;
@@ -236,7 +302,7 @@
       transition: width 0.2s ease;
     }
 
-    /* CARD FLUTUANTE DE EXCLUSÃO (Canto Superior Direito) */
+    /* CARD FLUTUANTE DE EXCLUSÃO */
     .last-winner-banner {
       background: var(--bg-card);
       border: 1px solid var(--primary);
@@ -497,25 +563,8 @@
       height: 100%;
       position: absolute;
       transition: transform 4s cubic-bezier(0.15, 0.99, 0.18, 0.99);
-      display: flex;
+      border-radius: 50%;
     }
-
-    .wheel-half {
-      width: 50%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 10px;
-      text-align: center;
-      font-weight: 700;
-      font-size: 0.9rem;
-      box-sizing: border-box;
-      word-wrap: break-word;
-    }
-
-    .wheel-half.half-a { background: #e50914; color: #fff; }
-    .wheel-half.half-b { background: #6c5ce7; color: #fff; }
 
     .roulette-pointer {
       width: 0; height: 0; 
@@ -589,7 +638,7 @@
     <!-- 1. CONFIGURAÇÃO & IMPORTAÇÃO -->
     <section id="view-setup" class="view-section active">
 
-      <!-- PERGUNTA FLUTUANTE DE EXCLUSÃO DO ÚLTIMO VENCEDOR (No Canto Superior Direito) -->
+      <!-- PERGUNTA FLUTUANTE DE EXCLUSÃO DO ÚLTIMO VENCEDOR -->
       <div id="last-winner-banner" class="last-winner-banner" style="display:none;">
         <img id="lw-poster" class="last-winner-poster" src="" alt="Poster">
         <div class="last-winner-info">
@@ -609,6 +658,12 @@
           Escolha o filme ideal comparando suas listas do Letterboxd.
         </p>
 
+        <!-- CHECKBOX USAR MEUS FILMES DO REPOSITÓRIO -->
+        <label class="checkbox-container">
+          <input type="checkbox" id="use-my-files-check" onchange="toggleUseMyFiles()">
+          <span><strong>Usar meus filmes</strong> (Carregar watched.csv e watchlist.csv do repositório)</span>
+        </label>
+
         <div id="storage-status" style="display:none; text-align:center;">
           <div class="storage-badge">
             <i class="fa-solid fa-database"></i> <span id="storage-msg">Dados salvos no navegador</span>
@@ -619,13 +674,13 @@
           <i class="fa-solid fa-file-zipper fa-3x" style="color:var(--text-muted); margin-bottom:0.8rem"></i>
           <h3 id="file-label">Clique ou arraste seu arquivo ZIP/CSV do Letterboxd</h3>
           <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0.3rem">Exportado de Settings > Import & Export no Letterboxd</p>
-          <input type="file" id="file-input" accept=".zip, .csv" style="display:none" onchange="handleFileSelect(event)">
+          <input type="file" id="file-input" accept=".zip, .csv" multiple style="display:none" onchange="handleFileSelect(event)">
         </div>
 
         <div id="config-options" style="display:none;">
           <div class="form-group" id="zip-source-group" style="display:none;">
-            <label for="csv-source-select"><i class="fa-solid fa-folder-open"></i> Origem dos Filmes (Lista):</label>
-            <select id="csv-source-select"></select>
+            <label><i class="fa-solid fa-folder-open"></i> Selecione as Listas para Combinar na Disputa:</label>
+            <div class="lists-checklist-box" id="lists-checklist-box"></div>
           </div>
 
           <div class="form-group">
@@ -645,12 +700,17 @@
               <div class="mode-option active" onclick="selectMode('tradicional')" id="mode-tradicional">
                 <i class="fa-solid fa-sitemap fa-1x" style="margin-bottom:0.3rem"></i>
                 <div><strong>Mata-Mata</strong></div>
-                <small style="color:var(--text-muted)">Chaveamento eliminatório tradicional</small>
+                <small style="color:var(--text-muted)">Chaveamento eliminatório 1v1</small>
               </div>
               <div class="mode-option" onclick="selectMode('ranking')" id="mode-ranking">
                 <i class="fa-solid fa-crown fa-1x" style="margin-bottom:0.3rem"></i>
                 <div><strong>Rei da Mesa</strong></div>
-                <small style="color:var(--text-muted)">O vencedor da rodada continua desafiando</small>
+                <small style="color:var(--text-muted)">Vencedor continua na mesa</small>
+              </div>
+              <div class="mode-option" onclick="selectMode('roleta4')" id="mode-roleta4">
+                <i class="fa-solid fa-dharmachakra fa-1x" style="margin-bottom:0.3rem"></i>
+                <div><strong>Roleta (4+)</strong></div>
+                <small style="color:var(--text-muted)">Mata-mata até 4 sobrarem, depois roleta</small>
               </div>
             </div>
           </div>
@@ -659,7 +719,7 @@
             <i class="fa-solid fa-play"></i> INICIAR DISPUTA
           </button>
 
-          <button type="button" class="btn btn-danger" onclick="clearStoredData()">
+          <button type="button" class="btn btn-danger" id="btn-clear-data" onclick="clearStoredData()">
             <i class="fa-solid fa-trash"></i> Apagar Todos os Dados Salvos
           </button>
         </div>
@@ -718,6 +778,9 @@
                 <span id="m1-overview">Sem sinopse disponível em português.</span>
               </div>
             </div>
+            <button type="button" class="btn-skip" onclick="skipMovie(1)">
+              <i class="fa-solid fa-eye-slash"></i> Não conheço esse filme
+            </button>
           </div>
 
           <div class="vs-badge">VS</div>
@@ -752,6 +815,9 @@
                 <span id="m2-overview">Sem sinopse disponível em português.</span>
               </div>
             </div>
+            <button type="button" class="btn-skip" onclick="skipMovie(2)">
+              <i class="fa-solid fa-eye-slash"></i> Não conheço esse filme
+            </button>
           </div>
         </div>
       </div>
@@ -777,10 +843,7 @@
       <h2 style="color:#fff;">GIRANDO A ROLETA DA DECISÃO...</h2>
       <div class="roulette-wheel-container">
         <div class="roulette-pointer"></div>
-        <div class="roulette-wheel" id="roulette-wheel">
-          <div class="wheel-half half-a" id="wheel-title-a">Opção A</div>
-          <div class="wheel-half half-b" id="wheel-title-b">Opção B</div>
-        </div>
+        <div class="roulette-wheel" id="roulette-wheel"></div>
       </div>
     </div>
 
@@ -796,8 +859,6 @@
   </main>
 
   <script>
-    // O site agora usa um proxy do TMDB para não expor sua chave no GitHub Pages.
-    // Depois de criar o Cloudflare Worker, coloque a URL dele abaixo.
     const TMDB_PROXY_URL = "https://cinescolhe-tmdb.pvitorss2004.workers.dev";
     const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
 
@@ -814,6 +875,7 @@
     const STORAGE_KEY = "cinescolhe_data_v3";
 
     let loadedCsvEntries = {};
+    let fullUnselectedPool = [];
     let selectedMoviesList = [];
     let activeQueue = [];
     let nextQueue = [];
@@ -823,6 +885,61 @@
     let selectedMode = 'tradicional';
     let tmdbCache = {};
     let lastWinnerMovie = null;
+
+    function isUseMyFilesActive() {
+      return document.getElementById('use-my-files-check').checked;
+    }
+
+    async function toggleUseMyFiles() {
+      const isChecked = isUseMyFilesActive();
+      const dropzone = document.getElementById('dropzone');
+      const banner = document.getElementById('last-winner-banner');
+
+      if (isChecked) {
+        dropzone.style.display = 'none';
+        banner.style.display = 'none';
+        await autoLoadRepoFiles();
+      } else {
+        dropzone.style.display = 'block';
+        if (Object.keys(loadedCsvEntries).length > 0) {
+          setupSourceChecklist();
+        } else {
+          document.getElementById('config-options').style.display = 'none';
+        }
+        checkLastWinnerBanner();
+      }
+    }
+
+    /* Carrega watched.csv e watchlist.csv diretamente do repositório/pasta do index */
+    async function autoLoadRepoFiles() {
+      const targetFiles = ['watched.csv', 'watchlist.csv'];
+      loadedCsvEntries = {};
+      let loadedCount = 0;
+
+      for (let file of targetFiles) {
+        try {
+          const res = await fetch('./' + file);
+          if (res.ok) {
+            const text = await res.text();
+            const rows = safeParseCsv(text);
+            if (rows.length > 0) {
+              loadedCsvEntries[file] = rows;
+              loadedCount++;
+            }
+          }
+        } catch (e) {
+          console.warn(`Arquivo ${file} não pôde ser lido via fetch.`, e);
+        }
+      }
+
+      if (loadedCount === 0) {
+        alert("Não foi possível ler 'watched.csv' e/ou 'watchlist.csv' no mesmo repositório do index.html. Verifique se o site está rodando em um servidor web (ex: GitHub Pages ou Live Server).");
+        document.getElementById('use-my-files-check').checked = false;
+        document.getElementById('dropzone').style.display = 'block';
+      } else {
+        setupSourceChecklist();
+      }
+    }
 
     function switchView(viewId) {
       document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
@@ -834,6 +951,7 @@
     }
 
     function saveToStorage() {
+      if (isUseMyFilesActive()) return;
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ loadedCsvEntries, tmdbCache, lastWinnerMovie }));
       } catch (e) { console.warn("Erro ao salvar cache local", e); }
@@ -861,8 +979,8 @@
       }
     }
 
-    /* Lógica do Banner de Exclusão do Último Vencedor */
     function checkLastWinnerBanner() {
+      if (isUseMyFilesActive()) return;
       const banner = document.getElementById('last-winner-banner');
       if (lastWinnerMovie) {
         document.getElementById('lw-title').innerText = lastWinnerMovie.titlePtBr || lastWinnerMovie.name;
@@ -890,10 +1008,11 @@
       removeMovieFromAllLists(lastWinnerMovie.name);
       alert(`"${lastWinnerMovie.titlePtBr || lastWinnerMovie.name}" foi removido do seu banco de dados!`);
       dismissLastWinnerBanner();
-      setupSourceDropdown();
+      setupSourceChecklist();
     }
 
     function removeMovieFromAllLists(movieName) {
+      if (isUseMyFilesActive()) return;
       const targetName = movieName.toLowerCase().trim();
       Object.keys(loadedCsvEntries).forEach(listKey => {
         loadedCsvEntries[listKey] = loadedCsvEntries[listKey].filter(item => {
@@ -904,7 +1023,6 @@
       saveToStorage();
     }
 
-    /* Modal de Remoção Personalizada */
     function openCustomDeleteModal() {
       document.getElementById('custom-delete-modal').style.display = 'flex';
       filterRemoveList();
@@ -916,8 +1034,8 @@
 
     function filterRemoveList() {
       const query = document.getElementById('search-remove-input').value.toLowerCase();
-      const sourceKey = document.getElementById('csv-source-select').value || Object.keys(loadedCsvEntries)[0];
-      const rows = loadedCsvEntries[sourceKey] || [];
+      const firstKey = Object.keys(loadedCsvEntries)[0];
+      const rows = loadedCsvEntries[firstKey] || [];
       const container = document.getElementById('remove-list-container');
       container.innerHTML = '';
 
@@ -947,7 +1065,7 @@
       if (confirm(`Remover "${movieName}" do banco de dados?`)) {
         removeMovieFromAllLists(movieName);
         filterRemoveList();
-        setupSourceDropdown();
+        setupSourceChecklist();
       }
     }
 
@@ -968,64 +1086,72 @@
       return '';
     }
 
+    /* Processa a importação de um ZIP ou múltiplos arquivos CSV */
     async function handleFileSelect(e) {
       const files = e.target.files;
       if (!files || files.length === 0) return;
-      const file = files[0];
 
-      document.getElementById('file-label').innerText = `Carregando: ${file.name}...`;
+      document.getElementById('file-label').innerText = `Processando ${files.length} arquivo(s)...`;
 
       try {
         loadedCsvEntries = {};
-        if (file.name.toLowerCase().endsWith('.zip')) {
-          const zip = await JSZip.loadAsync(file);
-          const zipPromises = [];
+        for (let file of files) {
+          if (file.name.toLowerCase().endsWith('.zip')) {
+            const zip = await JSZip.loadAsync(file);
+            const zipPromises = [];
 
-          zip.forEach((relativePath, zipEntry) => {
-            if (!zipEntry.dir && relativePath.toLowerCase().endsWith('.csv')) {
-              zipPromises.push(
-                zipEntry.async('string').then(content => {
-                  const rows = safeParseCsv(content);
-                  if (rows.length > 0) loadedCsvEntries[relativePath] = rows;
-                })
-              );
-            }
-          });
-          await Promise.all(zipPromises);
-        } else if (file.name.toLowerCase().endsWith('.csv')) {
-          const text = await file.text();
-          loadedCsvEntries[file.name] = safeParseCsv(text);
+            zip.forEach((relativePath, zipEntry) => {
+              if (!zipEntry.dir && relativePath.toLowerCase().endsWith('.csv')) {
+                zipPromises.push(
+                  zipEntry.async('string').then(content => {
+                    const rows = safeParseCsv(content);
+                    if (rows.length > 0) loadedCsvEntries[relativePath] = rows;
+                  })
+                );
+              }
+            });
+            await Promise.all(zipPromises);
+          } else if (file.name.toLowerCase().endsWith('.csv')) {
+            const text = await file.text();
+            loadedCsvEntries[file.name] = safeParseCsv(text);
+          }
         }
 
         saveToStorage();
-        setupSourceDropdown();
+        setupSourceChecklist();
       } catch (err) {
-        alert("Erro ao ler o arquivo: " + err.message);
+        alert("Erro ao ler o(s) arquivo(s): " + err.message);
       }
     }
 
-    function setupSourceDropdown() {
+    function setupSourceChecklist() {
       const keys = Object.keys(loadedCsvEntries);
       if (keys.length === 0) {
-        alert("Nenhum dado de filme encontrado no arquivo!");
+        alert("Nenhum dado de filme encontrado!");
         return;
       }
 
-      const select = document.getElementById('csv-source-select');
-      select.innerHTML = '';
+      const container = document.getElementById('lists-checklist-box');
+      container.innerHTML = '';
 
       keys.forEach(key => {
         const count = loadedCsvEntries[key].length;
-        const opt = document.createElement('option');
-        opt.value = key;
-        opt.innerText = `${key} (${count} itens)`;
-        if (key.toLowerCase().includes('watchlist')) opt.selected = true;
-        select.appendChild(opt);
+        const cleanName = key.split('/').pop() || key;
+
+        const item = document.createElement('label');
+        item.className = 'lists-checklist-item';
+        item.innerHTML = `
+          <input type="checkbox" name="selected-list" value="${key}" checked>
+          <span>${cleanName} (${count} filmes)</span>
+        `;
+        container.appendChild(item);
       });
 
-      document.getElementById('zip-source-group').style.display = keys.length > 1 ? 'block' : 'none';
+      document.getElementById('zip-source-group').style.display = 'block';
       document.getElementById('config-options').style.display = 'block';
-      document.getElementById('dropzone').style.display = 'none';
+      if (!isUseMyFilesActive()) {
+        document.getElementById('dropzone').style.display = 'none';
+      }
 
       document.getElementById('storage-status').style.display = 'block';
       document.getElementById('storage-msg').innerText = `${keys.length} lista(s) carregada(s).`;
@@ -1035,38 +1161,49 @@
     function selectMode(mode) {
       selectedMode = mode;
       document.querySelectorAll('.mode-option').forEach(el => el.classList.remove('active'));
-      document.getElementById(`mode-${mode}`).classList.add('active');
+      document.getElementById(`mode-${mode}`)?.classList.add('active');
     }
 
     async function startTournament() {
-      const sourceKey = document.getElementById('csv-source-select').value || Object.keys(loadedCsvEntries)[0];
-      const rawRows = loadedCsvEntries[sourceKey] || [];
+      const checkedBoxes = Array.from(document.querySelectorAll('input[name="selected-list"]:checked'));
+      const selectedSources = checkedBoxes.map(cb => cb.value);
 
+      if (selectedSources.length === 0) {
+        alert("Por favor, marque pelo menos uma lista!");
+        return;
+      }
+
+      // Une as listas selecionadas garantindo a remoção de duplicatas
       const uniqueMap = new Map();
-      rawRows.forEach(r => {
-        const name = getPropIgnoreCase(r, ['Name', 'Title', 'Film', 'Movie']);
-        const yearStr = getPropIgnoreCase(r, ['Year', 'Release Year', 'Release Date']);
-        const year = parseInt(yearStr) || 0;
 
-        if (name) {
-          const key = `${name.toLowerCase()}_${year}`;
-          if (!uniqueMap.has(key)) {
-            uniqueMap.set(key, { 
-              name, year, 
-              titlePtBr: name, 
-              poster: null, 
-              voteAverage: null,
-              overview: null,
-              director: null,
-              cast: null
-            });
+      selectedSources.forEach(sourceKey => {
+        const rawRows = loadedCsvEntries[sourceKey] || [];
+        rawRows.forEach(r => {
+          const name = getPropIgnoreCase(r, ['Name', 'Title', 'Film', 'Movie']);
+          const yearStr = getPropIgnoreCase(r, ['Year', 'Release Year', 'Release Date']);
+          const year = parseInt(yearStr) || 0;
+
+          if (name) {
+            const key = `${name.toLowerCase().trim()}_${year}`;
+            if (!uniqueMap.has(key)) {
+              uniqueMap.set(key, { 
+                name: name.trim(), 
+                year, 
+                titlePtBr: name.trim(), 
+                poster: null, 
+                voteAverage: null,
+                overview: null,
+                director: null,
+                cast: null
+              });
+            }
           }
-        }
+        });
       });
 
       let allMovies = Array.from(uniqueMap.values());
       if (allMovies.length < 2) {
-        alert("A lista precisa ter no mínimo 2 filmes!");
+        alert("A seleção precisa ter no mínimo 2 filmes únicos!");
         return;
       }
 
@@ -1075,13 +1212,16 @@
       const sampleOption = document.getElementById('sample-size-select').value;
       if (sampleOption !== 'all') {
         const count = parseInt(sampleOption);
-        allMovies = allMovies.slice(0, Math.min(count, allMovies.length));
+        selectedMoviesList = allMovies.slice(0, Math.min(count, allMovies.length));
+        fullUnselectedPool = allMovies.slice(count);
+      } else {
+        selectedMoviesList = allMovies;
+        fullUnselectedPool = [];
       }
 
-      selectedMoviesList = allMovies;
       switchView('loading');
 
-      await fetchTmdbPostersAndDetails();
+      await fetchTmdbPostersAndDetails(selectedMoviesList);
       saveToStorage();
 
       activeQueue = [...selectedMoviesList];
@@ -1095,11 +1235,11 @@
       renderNextMatch();
     }
 
-    async function fetchTmdbPostersAndDetails() {
+    async function fetchTmdbPostersAndDetails(moviesList) {
       let done = 0;
-      const total = selectedMoviesList.length;
+      const total = moviesList.length;
 
-      for (let m of selectedMoviesList) {
+      for (let m of moviesList) {
         done++;
         const cacheKey = `${m.name.toLowerCase()}_${m.year}`;
 
@@ -1140,7 +1280,6 @@
             }
           } catch(e) {
             console.error("ERRO TMDB:", e);
-            alert("Erro ao buscar dados do TMDB para \"" + m.name + "\": " + e.message);
           }
           await new Promise(r => setTimeout(r, 40));
         }
@@ -1151,7 +1290,21 @@
       closeDrawers();
       let isFinalRound = false;
 
-      if (selectedMode === 'tradicional') {
+      if (selectedMode === 'roleta4') {
+        if (activeQueue.length + nextQueue.length <= 4 && activeQueue.length === 0) {
+          const finalCandidates = [...nextQueue];
+          if (movieA) finalCandidates.push(movieA);
+          if (movieB) finalCandidates.push(movieB);
+          
+          const uniqueFinals = Array.from(new Set(finalCandidates));
+          if (uniqueFinals.length >= 3) {
+            triggerMultiRoulette(uniqueFinals);
+            return;
+          }
+        }
+      }
+
+      if (selectedMode === 'tradicional' || selectedMode === 'roleta4') {
         if (activeQueue.length >= 2) {
           movieA = activeQueue.shift();
           movieB = activeQueue.shift();
@@ -1174,7 +1327,7 @@
 
         const remainingTotal = activeQueue.length + nextQueue.length + 2;
         document.getElementById('round-info').innerText = `Restam ${remainingTotal} filmes no torneio.`;
-        if (remainingTotal === 2) isFinalRound = true;
+        if (remainingTotal === 2 && selectedMode !== 'roleta4') isFinalRound = true;
 
       } else {
         if (activeQueue.length > 0) {
@@ -1192,6 +1345,33 @@
 
       displayMovieCard(1, movieA);
       displayMovieCard(2, movieB);
+    }
+
+    async function skipMovie(cardNum) {
+      let replacement = null;
+
+      if (fullUnselectedPool.length > 0) {
+        replacement = fullUnselectedPool.shift();
+      } else if (activeQueue.length > 0) {
+        replacement = activeQueue.shift();
+      } else if (nextQueue.length > 0) {
+        replacement = nextQueue.shift();
+      }
+
+      if (!replacement) {
+        alert("Não há outros filmes no banco de dados para substituir este.");
+        return;
+      }
+
+      await fetchTmdbPostersAndDetails([replacement]);
+
+      if (cardNum === 1) {
+        movieA = replacement;
+        displayMovieCard(1, movieA);
+      } else {
+        movieB = replacement;
+        displayMovieCard(2, movieB);
+      }
     }
 
     function displayMovieCard(num, movie) {
@@ -1240,7 +1420,7 @@
 
     function chooseWinner(choice) {
       const selected = choice === 1 ? movieA : movieB;
-      if (selectedMode === 'tradicional') {
+      if (selectedMode === 'tradicional' || selectedMode === 'roleta4') {
         nextQueue.push(selected);
       } else {
         currentKing = selected;
@@ -1249,25 +1429,56 @@
     }
 
     function triggerRoulette() {
+      triggerMultiRoulette([movieA, movieB]);
+    }
+
+    function triggerMultiRoulette(moviesList) {
       const modal = document.getElementById('roulette-modal');
       const wheel = document.getElementById('roulette-wheel');
-      document.getElementById('wheel-title-a').innerText = movieA.titlePtBr || movieA.name;
-      document.getElementById('wheel-title-b').innerText = movieB.titlePtBr || movieB.name;
+      wheel.innerHTML = '';
+
+      const count = moviesList.length;
+      const colors = ['#e50914', '#6c5ce7', '#00b894', '#fdcb6e', '#e17055', '#0984e3'];
+      const sliceDeg = 360 / count;
+
+      let gradientStops = [];
+      moviesList.forEach((m, idx) => {
+        const start = idx * sliceDeg;
+        const end = (idx + 1) * sliceDeg;
+        const color = colors[idx % colors.length];
+        gradientStops.push(`${color} ${start}deg ${end}deg`);
+
+        const label = document.createElement('div');
+        label.style.position = 'absolute';
+        label.style.width = '100%';
+        label.style.height = '100%';
+        label.style.textAlign = 'center';
+        label.style.fontWeight = 'bold';
+        label.style.fontSize = '0.8rem';
+        label.style.color = '#fff';
+        label.style.paddingTop = '10px';
+        label.style.transform = `rotate(${start + sliceDeg/2}deg)`;
+        label.innerText = m.titlePtBr || m.name;
+        wheel.appendChild(label);
+      });
+
+      wheel.style.background = `conic-gradient(${gradientStops.join(', ')})`;
 
       modal.style.display = 'flex';
       wheel.style.transition = 'none';
       wheel.style.transform = 'rotate(0deg)';
 
       setTimeout(() => {
-        const winnerChoice = Math.random() < 0.5 ? 1 : 2;
-        const degrees = winnerChoice === 1 ? 1440 + 90 : 1440 + 270;
+        const winnerIndex = Math.floor(Math.random() * count);
+        const winner = moviesList[winnerIndex];
+        const targetDeg = 1440 + (360 - (winnerIndex * sliceDeg + sliceDeg / 2));
 
         wheel.style.transition = 'transform 4s cubic-bezier(0.15, 0.99, 0.18, 0.99)';
-        wheel.style.transform = `rotate(${degrees}deg)`;
+        wheel.style.transform = `rotate(${targetDeg}deg)`;
 
         setTimeout(() => {
           modal.style.display = 'none';
-          chooseWinner(winnerChoice);
+          showWinner(winner);
         }, 4300);
       }, 100);
     }
@@ -1295,7 +1506,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       if (loadFromStorage()) {
-        setupSourceDropdown();
+        setupSourceChecklist();
       }
     });
   </script>
