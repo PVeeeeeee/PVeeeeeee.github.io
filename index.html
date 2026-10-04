@@ -906,12 +906,11 @@
         banner.style.display = 'none';
         await autoLoadRepoFiles();
       } else {
+        // Ao desmarcar "Usar meus filmes", limpa os ficheiros automáticos e exibe o dropzone para upload próprio
+        loadedCsvEntries = {};
+        document.getElementById('config-options').style.display = 'none';
+        document.getElementById('storage-status').style.display = 'none';
         dropzone.style.display = 'block';
-        if (Object.keys(loadedCsvEntries).length > 0) {
-          setupSourceChecklist();
-        } else {
-          document.getElementById('config-options').style.display = 'none';
-        }
         checkLastWinnerBanner();
       }
     }
@@ -1124,7 +1123,7 @@
         }
 
         saveToStorage();
-        setupSourceChecklist(false); // Veem desmarcadas por padrão ao importar ZIP/CSV
+        setupSourceChecklist(false);
       } catch (err) {
         alert("Erro ao ler o(s) arquivo(s): " + err.message);
       }
@@ -1180,7 +1179,6 @@
         return;
       }
 
-      // Une as listas selecionadas garantindo a remoção de duplicatas
       const uniqueMap = new Map();
 
       selectedSources.forEach(sourceKey => {
@@ -1297,7 +1295,6 @@
       closeDrawers();
       let isFinalRound = false;
 
-      // LÓGICA RIGOROSA DO MODO ROLETA (4+)
       if (selectedMode === 'roleta4') {
         let currentCandidates = [...activeQueue, ...nextQueue];
         if (movieA) currentCandidates.push(movieA);
@@ -1305,7 +1302,6 @@
 
         const uniqueCandidates = Array.from(new Set(currentCandidates));
 
-        // Se restam exatamente 4 filmes no torneio (ou menos caso a lista inicial fosse menor), aciona a roleta
         if (uniqueCandidates.length <= 4) {
           movieA = null;
           movieB = null;
@@ -1444,7 +1440,6 @@
       triggerMultiRoulette([movieA, movieB]);
     }
 
-    /* Desenha a roleta via SVG para curvar o texto ao longo das bordas das fatias */
     function triggerMultiRoulette(moviesList) {
       const modal = document.getElementById('roulette-modal');
       const wheel = document.getElementById('roulette-wheel');
@@ -1463,7 +1458,7 @@
 
       const center = 160;
       const radius = 160;
-      const textRadius = 125; // Raio onde o arco do texto fica posicionado
+      const textRadius = 125;
 
       moviesList.forEach((m, idx) => {
         const startDeg = idx * sliceAngle;
@@ -1479,14 +1474,12 @@
 
         const largeArc = sliceAngle > 180 ? 1 : 0;
 
-        // Caminho da fatia
         const path = document.createElementNS(svgNS, "path");
         const d = `M ${center} ${center} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
         path.setAttribute("d", d);
         path.setAttribute("fill", colors[idx % colors.length]);
         svg.appendChild(path);
 
-        // Caminho curvo invisível para o texto
         const pathId = `text-path-${idx}`;
         const tx1 = center + textRadius * Math.cos(startRad);
         const ty1 = center + textRadius * Math.sin(startRad);
@@ -1498,7 +1491,6 @@
         textArcPath.setAttribute("d", `M ${tx1} ${ty1} A ${textRadius} ${textRadius} 0 ${largeArc} 1 ${tx2} ${ty2}`);
         defs.appendChild(textArcPath);
 
-        // Texto curvado ao longo do arco
         const text = document.createElementNS(svgNS, "text");
         text.setAttribute("fill", "#ffffff");
         text.setAttribute("font-size", "12");
