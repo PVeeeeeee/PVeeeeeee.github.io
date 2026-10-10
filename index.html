@@ -250,7 +250,7 @@
       font-size: 1.05rem;
       padding: 0.85rem;
       box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4);
-      margin-top: 1rem;
+      margin-bottom: 1rem;
     }
 
     .btn-roulette:hover {
@@ -1154,7 +1154,7 @@
     let arcadeMovies = [];
     let arcadePicksAllowed = 3;
     let currentActivePower = null;
-    let hasExtraSpinCard = false; // Registra se o player possui permissão de Giro Extra
+    let hasExtraSpinCard = false;
     
     const FULL_POWER_DECK = [
       { id: 'eliminate_choice', title: 'Eliminar Alvo', desc: 'Clique em 1 filme para eliminar.', icon: 'fa-crosshairs' },
@@ -1632,14 +1632,15 @@
 
         const remainingTotal = activeQueue.length + nextQueue.length + 2;
         document.getElementById('round-info').innerText = `Restam ${remainingTotal} filmes no torneio.`;
-        if (remainingTotal === 2) isFinalRound = true;
+        // NOVO: Exibe a roleta quando restarem 4 ou menos filmes no torneio
+        if (remainingTotal <= 4) isFinalRound = true;
 
       } else {
         if (activeQueue.length > 0) {
           movieA = currentKing;
           movieB = activeQueue.shift();
           document.getElementById('round-info').innerText = `Faltam ${activeQueue.length + 1} desafiantes.`;
-          if (activeQueue.length === 0) isFinalRound = true;
+          if (activeQueue.length <= 3) isFinalRound = true;
         } else {
           showWinner(currentKing);
           return;
@@ -1657,7 +1658,7 @@
       arcadeMovies = [...movies];
       arcadePicksAllowed = 3;
       currentActivePower = null;
-      hasExtraSpinCard = false; // Reset da carta de giro extra
+      hasExtraSpinCard = false;
 
       switchView('arcade');
       renderArcadeGrid();
@@ -1669,7 +1670,6 @@
       grid.innerHTML = '';
       document.getElementById('arcade-count').innerText = arcadeMovies.length;
 
-      // Agrupa filmes duplicados para exibir com visual de cartas sobrepostas
       const countsMap = new Map();
       arcadeMovies.forEach(m => {
         const key = m.titlePtBr || m.name;
@@ -1749,7 +1749,7 @@
       if (cardEl.classList.contains('flipped')) return;
 
       if (currentActivePower) {
-        showToast("⚠️️ Use o poder da carta atual na grade de filmes antes de pegar outra!");
+        showToast("⚠️ Use o poder da carta atual na grade de filmes antes de pegar outra!");
         return;
       }
 
@@ -2045,7 +2045,13 @@
     }
 
     function triggerRoulette() {
-      triggerMultiRoulette([movieA, movieB]);
+      // Coleta todos os filmes restantes na disputa do Mata-Mata
+      let remaining = [...activeQueue, ...nextQueue];
+      if (movieA) remaining.push(movieA);
+      if (movieB) remaining.push(movieB);
+
+      const uniqueRemaining = Array.from(new Set(remaining));
+      triggerMultiRoulette(uniqueRemaining);
     }
 
     /* ROLETA COM GIRO ÚNICO E SUPORTE A GIRO EXTRA OPCIONAL */
@@ -2144,7 +2150,6 @@
     }
 
     function useExtraSpinOption() {
-      // Esconde o botão após usá-lo 1 vez para não girar infinitamente
       hasExtraSpinCard = false;
       document.getElementById('btn-extra-spin-trigger').style.display = 'none';
       triggerMultiRoulette(arcadeMovies);
@@ -2160,7 +2165,6 @@
       document.getElementById('winner-year').innerText = winner.year ? `(${winner.year})` : '';
       document.getElementById('winner-poster').src = winner.poster || '';
 
-      // Se ativou a carta Giro Extra, exibe o botão opcional para girar novamente
       const extraSpinBtn = document.getElementById('btn-extra-spin-trigger');
       if (hasExtraSpinCard) {
         extraSpinBtn.style.display = 'flex';
