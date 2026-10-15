@@ -854,6 +854,13 @@
       .arcade-smart-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
       .flip-card-mini { width: 95px; height: 135px; }
     }
+    .arcade-toast{position:fixed;top:70px;left:0;right:0;margin:0 auto;width:fit-content;max-width:90%;z-index:1200;background-color:#181a20}
+    @keyframes shakeHit{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+    @keyframes goldGlow{0%,100%{box-shadow:0 0 0 rgba(255,215,0,0)}50%{box-shadow:0 0 30px rgba(255,215,0,.75)}}
+    .fx-hit{animation:shakeHit .45s}
+    .fx-gold{animation:goldGlow .9s;border-radius:12px}
+    .confetti-piece{position:fixed;top:-16px;width:9px;height:14px;z-index:1300;pointer-events:none;animation:confettiFall linear forwards}
+    @keyframes confettiFall{to{transform:translateY(105vh) rotate(720deg)}}
   </style>
 </head>
 <body>
@@ -876,9 +883,9 @@
           <div>Excluir do banco de dados o último filme escolhido?</div>
           <div class="last-winner-title" id="lw-title">Nome do Filme</div>
           <div class="last-winner-actions">
-            <button type="button" class="btn-mini yes" onclick="confirmDeleteLastWinner()"><i class="fa-solid fa-check"></i> Sim</button>
-            <button type="button" class="btn-mini" onclick="dismissLastWinnerBanner()"><i class="fa-solid fa-xmark"></i> Não</button>
-            <button type="button" class="btn-mini" onclick="openCustomDeleteModal()"><i class="fa-solid fa-list-check"></i> Escolher outro</button>
+            <button type="button" class="btn-mini yes" data-action="confirmDeleteLastWinner"><i class="fa-solid fa-check"></i> Sim</button>
+            <button type="button" class="btn-mini" data-action="dismissLastWinnerBanner"><i class="fa-solid fa-xmark"></i> Não</button>
+            <button type="button" class="btn-mini" data-action="openCustomDeleteModal"><i class="fa-solid fa-list-check"></i> Escolher outro</button>
           </div>
         </div>
       </div>
@@ -891,7 +898,7 @@
 
         <!-- CHECKBOX USAR MEUS FILMES DO REPOSITÓRIO -->
         <label class="checkbox-container">
-          <input type="checkbox" id="use-my-files-check" onchange="toggleUseMyFiles()">
+          <input type="checkbox" id="use-my-files-check" data-change="toggleUseMyFiles">
           <span><strong>Usar meus filmes</strong> (Carregar watched.csv e watchlist.csv do repositório)</span>
         </label>
 
@@ -905,7 +912,7 @@
           <i class="fa-solid fa-file-zipper fa-3x" style="color:var(--text-muted); margin-bottom:0.8rem"></i>
           <h3 id="file-label">Clique ou arraste seu arquivo ZIP/CSV do Letterboxd</h3>
           <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0.3rem">Exportado de Settings > Import & Export no Letterboxd</p>
-          <input type="file" id="file-input" accept=".zip, .csv" multiple style="display:none" onchange="handleFileSelect(event)">
+          <input type="file" id="file-input" accept=".zip, .csv" multiple style="display:none" data-change="handleFileSelect">
         </div>
 
         <div id="config-options" style="display:none;">
@@ -921,24 +928,24 @@
               <option value="16" selected>Top 16 Filmes (Torneio Padrão)</option>
               <option value="32">Top 32 Filmes (Torneio Longo)</option>
               <option value="64">Top 64 Filmes (Maratona)</option>
-              <option value="all">Todos os Filmes da Lista</option>
+              <option value="all">Todos (máx. 100)</option>
             </select>
           </div>
 
           <div class="form-group">
             <label><i class="fa-solid fa-trophy"></i> Formato da Disputa:</label>
             <div class="modes-grid">
-              <div class="mode-option active" onclick="selectMode('tradicional')" id="mode-tradicional">
+              <div class="mode-option active" data-action="selectMode" data-arg="tradicional" id="mode-tradicional">
                 <i class="fa-solid fa-sitemap fa-1x" style="margin-bottom:0.3rem"></i>
                 <div><strong>Mata-Mata</strong></div>
                 <small style="color:var(--text-muted)">Chaveamento eliminatório 1v1</small>
               </div>
-              <div class="mode-option" onclick="selectMode('ranking')" id="mode-ranking">
+              <div class="mode-option" data-action="selectMode" data-arg="ranking" id="mode-ranking">
                 <i class="fa-solid fa-crown fa-1x" style="margin-bottom:0.3rem"></i>
                 <div><strong>Rei da Mesa</strong></div>
                 <small style="color:var(--text-muted)">Vencedor continua na mesa</small>
               </div>
-              <div class="mode-option" onclick="selectMode('arcade')" id="mode-arcade">
+              <div class="mode-option" data-action="selectMode" data-arg="arcade" id="mode-arcade">
                 <i class="fa-solid fa-gamepad fa-1x" style="margin-bottom:0.3rem"></i>
                 <div><strong>Arcade</strong></div>
                 <small style="color:var(--text-muted)">8 Filmes + Poderes + Roleta</small>
@@ -946,11 +953,11 @@
             </div>
           </div>
 
-          <button type="button" class="btn" onclick="startTournament()">
+          <button type="button" class="btn" data-action="startTournament">
             <i class="fa-solid fa-play"></i> INICIAR DISPUTA
           </button>
 
-          <button type="button" class="btn btn-danger" id="btn-clear-data" onclick="clearStoredData()">
+          <button type="button" class="btn btn-danger" id="btn-clear-data" data-action="clearStoredData">
             <i class="fa-solid fa-trash"></i> Apagar Todos os Dados Salvos
           </button>
         </div>
@@ -974,26 +981,26 @@
         <h2 id="round-title">QUAL VOCÊ PREFERE?</h2>
         <p id="round-info" style="text-align:center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;"></p>
 
-        <button type="button" id="btn-roulette-final" class="btn btn-roulette" style="display:none;" onclick="triggerRoulette()">
+        <button type="button" id="btn-roulette-final" class="btn btn-roulette" style="display:none;" data-action="triggerRoulette">
           <i class="fa-solid fa-dharmachakra"></i> Girar Roleta para Decidir o Vencedor!
         </button>
 
         <div class="comparison-container">
           <!-- Card 1 -->
           <div class="movie-card">
-            <div class="poster-box" onclick="chooseWinner(1)">
+            <div class="poster-box" data-action="chooseWinner" data-arg="1">
               <div class="rating-badge" id="m1-rating"><i class="fa-solid fa-star"></i> <span>-</span></div>
               <img id="m1-poster" src="" style="display:none;">
               <div id="m1-placeholder" class="poster-placeholder">
                 <i class="fa-solid fa-film fa-3x"></i>
               </div>
             </div>
-            <div class="movie-details" onclick="chooseWinner(1)">
+            <div class="movie-details" data-action="chooseWinner" data-arg="1">
               <div class="movie-title" id="m1-title">Filme 1</div>
               <div class="movie-meta" id="m1-year">2023</div>
             </div>
-            <button type="button" class="info-drawer-toggle" onclick="toggleDrawer(1)">
-              <i class="fa-solid fa-circle-info"></i> Details / Sinopse <i class="fa-solid fa-chevron-down" id="m1-chevron"></i>
+            <button type="button" class="info-drawer-toggle" data-action="toggleDrawer" data-arg="1">
+              <i class="fa-solid fa-circle-info"></i> Detalhes / Sinopse <i class="fa-solid fa-chevron-down" id="m1-chevron"></i>
             </button>
             <div class="info-drawer-content" id="m1-drawer">
               <div class="drawer-section">
@@ -1009,7 +1016,7 @@
                 <span id="m1-overview">Sem sinopse disponível em português.</span>
               </div>
             </div>
-            <button type="button" class="btn-skip" onclick="skipMovie(1)">
+            <button type="button" class="btn-skip" data-action="skipMovie" data-arg="1">
               <i class="fa-solid fa-eye-slash"></i> Não conheço esse filme
             </button>
           </div>
@@ -1018,19 +1025,19 @@
 
           <!-- Card 2 -->
           <div class="movie-card">
-            <div class="poster-box" onclick="chooseWinner(2)">
+            <div class="poster-box" data-action="chooseWinner" data-arg="2">
               <div class="rating-badge" id="m2-rating"><i class="fa-solid fa-star"></i> <span>-</span></div>
               <img id="m2-poster" src="" style="display:none;">
               <div id="m2-placeholder" class="poster-placeholder">
                 <i class="fa-solid fa-film fa-3x"></i>
               </div>
             </div>
-            <div class="movie-details" onclick="chooseWinner(2)">
+            <div class="movie-details" data-action="chooseWinner" data-arg="2">
               <div class="movie-title" id="m2-title">Filme 2</div>
               <div class="movie-meta" id="m2-year">2023</div>
             </div>
-            <button type="button" class="info-drawer-toggle" onclick="toggleDrawer(2)">
-              <i class="fa-solid fa-circle-info"></i> Details / Sinopse <i class="fa-solid fa-chevron-down" id="m2-chevron"></i>
+            <button type="button" class="info-drawer-toggle" data-action="toggleDrawer" data-arg="2">
+              <i class="fa-solid fa-circle-info"></i> Detalhes / Sinopse <i class="fa-solid fa-chevron-down" id="m2-chevron"></i>
             </button>
             <div class="info-drawer-content" id="m2-drawer">
               <div class="drawer-section">
@@ -1046,7 +1053,7 @@
                 <span id="m2-overview">Sem sinopse disponível em português.</span>
               </div>
             </div>
-            <button type="button" class="btn-skip" onclick="skipMovie(2)">
+            <button type="button" class="btn-skip" data-action="skipMovie" data-arg="2">
               <i class="fa-solid fa-eye-slash"></i> Não conheço esse filme
             </button>
           </div>
@@ -1060,7 +1067,7 @@
         <h2 style="font-size:1.4rem"><i class="fa-solid fa-gamepad"></i> FASE ARCADE</h2>
         
         <!-- PAINEL DE NOTIFICAÇÕES TIPO TOAST -->
-        <div id="arcade-toast" class="arcade-toast" style="display:none;"></div>
+        
 
         <!-- CARTAS NO TOPO (FILEIRA HORIZONTAL COMPACTA) -->
         <h3 style="font-size:0.9rem; text-align:center; color:var(--text-muted); margin-bottom:0.3rem;">
@@ -1075,7 +1082,7 @@
         </h3>
         <div class="arcade-smart-grid" id="arcade-movie-grid"></div>
 
-        <button type="button" id="btn-arcade-start-roulette" class="btn btn-roulette" onclick="triggerArcadeFinalRoulette()">
+        <button type="button" id="btn-arcade-start-roulette" class="btn btn-roulette" data-action="triggerArcadeFinalRoulette">
           <i class="fa-solid fa-dharmachakra"></i> Girar Roleta Final!
         </button>
       </div>
@@ -1092,11 +1099,11 @@
         <p id="winner-year" style="color: var(--text-muted); margin-bottom: 1.5rem;">(2023)</p>
 
         <!-- BOTÃO DE GIRO EXTRA (REVELADO QUANDO O PLAYER ATIVOU A CARTA DE GIRO EXTRA) -->
-        <button type="button" id="btn-extra-spin-trigger" class="btn btn-extra-spin" style="display:none;" onclick="useExtraSpinOption()">
+        <button type="button" id="btn-extra-spin-trigger" class="btn btn-extra-spin" style="display:none;" data-action="useExtraSpinOption">
           <i class="fa-solid fa-rotate-right"></i> 🎰 Usar Giro Extra (Girar Novamente)
         </button>
 
-        <button type="button" class="btn" onclick="finishSessionAndGoHome()">
+        <button type="button" class="btn" data-action="finishSessionAndGoHome">
           <i class="fa-solid fa-house"></i> Ir para o Menu Inicial
         </button>
       </div>
@@ -1115,14 +1122,16 @@
     <div class="modal-overlay" id="custom-delete-modal">
       <div class="modal-box">
         <h3 style="color:var(--primary); margin-bottom: 1rem;"><i class="fa-solid fa-trash"></i> Escolha um filme para retirar:</h3>
-        <input type="text" id="search-remove-input" placeholder="Digite o nome do filme..." oninput="filterRemoveList()" style="margin-bottom: 1rem;">
+        <input type="text" id="search-remove-input" placeholder="Digite o nome do filme..." data-input="filterRemoveList" style="margin-bottom: 1rem;">
         <div id="remove-list-container" style="max-height: 250px; overflow-y: auto; margin-bottom: 1rem;"></div>
-        <button type="button" class="btn btn-danger" onclick="closeCustomDeleteModal()">Fechar</button>
+        <button type="button" class="btn btn-danger" data-action="closeCustomDeleteModal">Fechar</button>
       </div>
     </div>
+  <div id="arcade-toast" class="arcade-toast" role="status" aria-live="polite" style="display:none;"></div>
   </main>
 
   <script>
+(() => {
     const TMDB_PROXY_URL = "https://cinescolhe-tmdb.pvitorss2004.workers.dev";
     const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
 
@@ -1131,54 +1140,67 @@
         throw new Error("Configure a URL do proxy TMDB em TMDB_PROXY_URL.");
       }
       const base = TMDB_PROXY_URL.replace(/\/$/, "");
-      const separator = pathAndQuery.includes("?") ? "&" : "?";
-      const res = await fetch(base + pathAndQuery + separator + "via=cinescolhe");
+            const res = await fetch(base + pathAndQuery);
       if (!res.ok) throw new Error(`TMDB proxy HTTP ${res.status}`);
       return res.json();
     }
+    const state = { loadedCsvEntries: {}, fullUnselectedPool: [], selectedMoviesList: [], activeQueue: [], nextQueue: [], currentKing: null, movieA: null, movieB: null, selectedMode: 'tradicional', tmdbCache: {}, lastWinnerMovie: null, arcadeMovies: [], arcadePicksAllowed: 3, currentActivePower: null, hasExtraSpinCard: false, matchLocked: false };
     const STORAGE_KEY = "cinescolhe_data_v3";
 
-    let loadedCsvEntries = {};
-    let fullUnselectedPool = [];
-    let selectedMoviesList = [];
-    let activeQueue = [];
-    let nextQueue = [];
-    let currentKing = null;
-    let movieA = null;
-    let movieB = null;
-    let selectedMode = 'tradicional';
-    let tmdbCache = {};
-    let lastWinnerMovie = null;
 
     // MODO ARCADE - BARALHO COMPLETO DE CARTAS
-    let arcadeMovies = [];
-    let arcadePicksAllowed = 3;
-    let currentActivePower = null;
-    let hasExtraSpinCard = false;
     
     const FULL_POWER_DECK = [
       { id: 'eliminate_choice', title: 'Eliminar Alvo', desc: 'Clique em 1 filme para eliminar.', icon: 'fa-crosshairs' },
       { id: 'eliminate_random', title: 'Raio Laser', desc: 'Elimina 1 filme aleatório.', icon: 'fa-bolt' },
       { id: 'duplicate_choice', title: 'Clonar', desc: 'Clique em 1 filme para duplicar.', icon: 'fa-clone' },
-      { id: 'add_random', title: 'Repescagem', desc: 'Adiciona 1 filme do repositório.', icon: 'fa-plus-circle' },
+      { id: 'add_random', title: 'Repescagem', desc: 'Traz o melhor de 3 filmes sorteados do repositório.', icon: 'fa-plus-circle' },
       { id: 'extra_card', title: 'Sorte Grande', desc: '+2 Cartas extras para escolher!', icon: 'fa-gift' },
       { id: 'shuffle', title: 'Confusão', desc: 'Troca 1 filme por outro aleatório!', icon: 'fa-random' },
       { id: 'double_clone', title: 'Multiplicação', desc: 'Clique em 1 filme para criar 2 cópias!', icon: 'fa-copy' },
       { id: 'kamikaze', title: 'Kamikaze', desc: 'Elimina 2 filmes aleatórios!', icon: 'fa-bomb' },
       { id: 'purge_worst', title: 'Expurgo', desc: 'Elimina o filme com menor nota TMDB.', icon: 'fa-skull' },
-      { id: 'golden_ticket', title: 'Bilhete Dourado', desc: 'Adiciona +1 filme extra à roleta!', icon: 'fa-ticket' },
+      { id: 'golden_ticket', title: 'Bilhete Dourado', desc: 'Entra 1 filme novo já com 2 cópias!', icon: 'fa-ticket' },
       { id: 'swap_destiny', title: 'Troca de Destino', desc: 'Substitui 1 filme por outro novo!', icon: 'fa-right-left' },
       { id: 'mirror', title: 'Espelho', desc: 'Duplica todos os filmes já clonados!', icon: 'fa-wand-magic-sparkles' },
       { id: 'anarchy', title: 'Anarquia', desc: 'Embaralha 2 filmes por novos do repositório!', icon: 'fa-burst' },
       { id: 'extra_spin', title: 'Giro Extra', desc: 'Libera um botão para girar a roleta novamente se quiser!', icon: 'fa-rotate-right' },
-      { id: 'blessing', title: 'Anjo da Guarda', desc: 'Clona o filme com maior nota TMDB.', icon: 'fa-star' }
+      { id: 'blessing', title: 'Anjo da Guarda', desc: 'Clona o filme com maior nota TMDB.', icon: 'fa-star' },
+      { id: 'underdog', title: 'Azarão', desc: 'Dá 2 cópias ao filme de menor nota!', icon: 'fa-dog' },
+      { id: 'topple', title: 'Queda do Favorito', desc: 'Elimina o filme de maior nota.', icon: 'fa-crown' },
+      { id: 'oldest', title: 'Faxina do Tempo', desc: 'Elimina o filme mais antigo.', icon: 'fa-hourglass-half' },
+      { id: 'coinflip', title: 'Cara ou Coroa', desc: 'Cara: 2 clones. Coroa: perde 1 filme.', icon: 'fa-coins' },
+      { id: 'casino', title: 'Cassino', desc: 'Jackpot, desastre ou repescagem. Aposte!', icon: 'fa-dice' }
     ];
 
+    let toastTimer;
     function showToast(message) {
-      const toast = document.getElementById('arcade-toast');
-      toast.innerHTML = message;
-      toast.style.display = 'block';
+      const t = document.getElementById('arcade-toast');
+      t.textContent = message;
+      t.style.display = 'block';
+      const g = document.getElementById('arcade-movie-grid');
+      const fx = /^(⚡|💣|💀|🎯|👑|🕰)/.test(message) ? 'fx-hit' : /^(⭐|👯|✨|🎟|➕|🎁|🎰|🐶)/.test(message) ? 'fx-gold' : '';
+      if (fx) { g.classList.remove('fx-hit', 'fx-gold'); void g.offsetWidth; g.classList.add(fx); }
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { t.style.display = 'none'; }, 4500);
     }
+    function confetti() {
+      const cols = ['#ffd700', '#e50914', '#4cc9f0', '#7bff6a', '#ff7bd5'];
+      for (let i = 0; i < 70; i++) {
+        const p = document.createElement('div');
+        p.className = 'confetti-piece';
+        p.style.left = Math.random() * 100 + 'vw';
+        p.style.background = cols[i % 5];
+        p.style.animationDuration = (2 + Math.random() * 2.5) + 's';
+        p.style.animationDelay = (Math.random() * 0.6) + 's';
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 5500);
+      }
+    }
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const MAX_ALL = { normal: 100, arcade: 12 };
+    const CACHE_KEY = "cinescolhe_tmdb_v1";
+    let tmdbFails = 0;
 
     function isUseMyFilesActive() {
       return document.getElementById('use-my-files-check').checked;
@@ -1194,7 +1216,7 @@
         banner.style.display = 'none';
         await autoLoadRepoFiles();
       } else {
-        loadedCsvEntries = {};
+        state.loadedCsvEntries = {};
         document.getElementById('config-options').style.display = 'none';
         document.getElementById('storage-status').style.display = 'none';
         dropzone.style.display = 'block';
@@ -1204,7 +1226,7 @@
 
     async function autoLoadRepoFiles() {
       const targetFiles = ['watched.csv', 'watchlist.csv'];
-      loadedCsvEntries = {};
+      state.loadedCsvEntries = {};
       let loadedCount = 0;
 
       for (let file of targetFiles) {
@@ -1214,7 +1236,7 @@
             const text = await res.text();
             const rows = safeParseCsv(text);
             if (rows.length > 0) {
-              loadedCsvEntries[file] = rows;
+              state.loadedCsvEntries[file] = rows;
               loadedCount++;
             }
           }
@@ -1242,21 +1264,31 @@
     }
 
     function saveToStorage() {
-      if (isUseMyFilesActive()) return;
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ loadedCsvEntries, tmdbCache, lastWinnerMovie }));
-      } catch (e) { console.warn("Erro ao salvar cache local", e); }
+        const keys = Object.keys(state.tmdbCache);
+        if (keys.length > 1500) {
+          keys.sort((a, b) => (state.tmdbCache[a].ts || 0) - (state.tmdbCache[b].ts || 0))
+              .slice(0, keys.length - 1500).forEach(k => delete state.tmdbCache[k]);
+        }
+        localStorage.setItem(CACHE_KEY, JSON.stringify(state.tmdbCache));
+        if (!isUseMyFilesActive()) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ "loadedCsvEntries": state.loadedCsvEntries, "lastWinnerMovie": state.lastWinnerMovie }));
+        }
+      } catch (e) {
+        showToast("⚠️ Armazenamento do navegador cheio: alguns dados não foram salvos.");
+      }
     }
 
     function loadFromStorage() {
+      try { state.tmdbCache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}'); } catch (e) { state.tmdbCache = {}; }
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return false;
       try {
         const data = JSON.parse(raw);
+        if (data.tmdbCache) state.tmdbCache = { ...data.tmdbCache, ...state.tmdbCache };
         if (data && data.loadedCsvEntries && Object.keys(data.loadedCsvEntries).length > 0) {
-          loadedCsvEntries = data.loadedCsvEntries;
-          tmdbCache = data.tmdbCache || {};
-          lastWinnerMovie = data.lastWinnerMovie || null;
+          state.loadedCsvEntries = data.loadedCsvEntries;
+          state.lastWinnerMovie = data.lastWinnerMovie || null;
           return true;
         }
       } catch (e) { console.error("Erro ao carregar dados", e); }
@@ -1266,6 +1298,7 @@
     function clearStoredData() {
       if (confirm("Deseja apagar todos os dados salvos no navegador?")) {
         localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(CACHE_KEY);
         location.reload();
       }
     }
@@ -1273,11 +1306,11 @@
     function checkLastWinnerBanner() {
       if (isUseMyFilesActive()) return;
       const banner = document.getElementById('last-winner-banner');
-      if (lastWinnerMovie) {
-        document.getElementById('lw-title').innerText = lastWinnerMovie.titlePtBr || lastWinnerMovie.name;
+      if (state.lastWinnerMovie) {
+        document.getElementById('lw-title').innerText = state.lastWinnerMovie.titlePtBr || state.lastWinnerMovie.name;
         const posterEl = document.getElementById('lw-poster');
-        if (lastWinnerMovie.poster) {
-          posterEl.src = lastWinnerMovie.poster;
+        if (state.lastWinnerMovie.poster) {
+          posterEl.src = state.lastWinnerMovie.poster;
           posterEl.style.display = 'block';
         } else {
           posterEl.style.display = 'none';
@@ -1289,26 +1322,27 @@
     }
 
     function dismissLastWinnerBanner() {
-      lastWinnerMovie = null;
+      state.lastWinnerMovie = null;
       saveToStorage();
       document.getElementById('last-winner-banner').style.display = 'none';
     }
 
     function confirmDeleteLastWinner() {
-      if (!lastWinnerMovie) return;
-      removeMovieFromAllLists(lastWinnerMovie.name);
-      showToast(`"${lastWinnerMovie.titlePtBr || lastWinnerMovie.name}" foi removido do seu banco de dados!`);
+      if (!state.lastWinnerMovie) return;
+      removeMovieFromAllLists(state.lastWinnerMovie.name, state.lastWinnerMovie.year);
+      showToast(`"${state.lastWinnerMovie.titlePtBr || state.lastWinnerMovie.name}" foi removido do seu banco de dados!`);
       dismissLastWinnerBanner();
       setupSourceChecklist();
     }
 
-    function removeMovieFromAllLists(movieName) {
+    function removeMovieFromAllLists(movieName, year) {
       if (isUseMyFilesActive()) return;
-      const targetName = movieName.toLowerCase().trim();
-      Object.keys(loadedCsvEntries).forEach(listKey => {
-        loadedCsvEntries[listKey] = loadedCsvEntries[listKey].filter(item => {
-          const name = getPropIgnoreCase(item, ['Name', 'Title', 'Film', 'Movie']).toLowerCase().trim();
-          return name !== targetName;
+      const t = movieName.toLowerCase().trim(), y = year || 0;
+      Object.keys(state.loadedCsvEntries).forEach(k => {
+        state.loadedCsvEntries[k] = state.loadedCsvEntries[k].filter(it => {
+          const n = getPropIgnoreCase(it, ['Name', 'Title', 'Film', 'Movie']).toLowerCase().trim();
+          const iy = parseInt(getPropIgnoreCase(it, ['Year', 'Release Year', 'Release Date'])) || 0;
+          return !(n === t && iy === y);
         });
       });
       saveToStorage();
@@ -1325,8 +1359,7 @@
 
     function filterRemoveList() {
       const query = document.getElementById('search-remove-input').value.toLowerCase();
-      const firstKey = Object.keys(loadedCsvEntries)[0];
-      const rows = loadedCsvEntries[firstKey] || [];
+      const rows = Object.values(state.loadedCsvEntries).flat();
       const container = document.getElementById('remove-list-container');
       container.innerHTML = '';
 
@@ -1342,19 +1375,23 @@
 
       filtered.forEach(item => {
         const name = getPropIgnoreCase(item, ['Name', 'Title', 'Film', 'Movie']);
+        const year = parseInt(getPropIgnoreCase(item, ['Year', 'Release Year', 'Release Date'])) || 0;
         const div = document.createElement('div');
         div.className = 'remove-list-item';
-        div.innerHTML = `
-          <span>${name}</span>
-          <button class="btn-mini yes" onclick="deleteCustomMovie('${name.replace(/'/g, "\\'")}')">Excluir</button>
-        `;
+        const sp = document.createElement('span');
+        sp.textContent = year ? `${name} (${year})` : name;
+        const b = document.createElement('button');
+        b.className = 'btn-mini yes';
+        b.textContent = 'Excluir';
+        b.onclick = () => deleteCustomMovie(name, year);
+        div.append(sp, b);
         container.appendChild(div);
       });
     }
 
-    function deleteCustomMovie(movieName) {
-      if (confirm(`Remover "${movieName}" do banco de dados?`)) {
-        removeMovieFromAllLists(movieName);
+    function deleteCustomMovie(movieName, year) {
+      if (confirm(`Remover "${movieName}"${year ? ` (${year})` : ''} do banco de dados?`)) {
+        removeMovieFromAllLists(movieName, year);
         filterRemoveList();
         setupSourceChecklist();
       }
@@ -1384,7 +1421,7 @@
       document.getElementById('file-label').innerText = `Processando ${files.length} arquivo(s)...`;
 
       try {
-        loadedCsvEntries = {};
+        state.loadedCsvEntries = {};
         for (let file of files) {
           if (file.name.toLowerCase().endsWith('.zip')) {
             const zip = await JSZip.loadAsync(file);
@@ -1395,7 +1432,7 @@
                 zipPromises.push(
                   zipEntry.async('string').then(content => {
                     const rows = safeParseCsv(content);
-                    if (rows.length > 0) loadedCsvEntries[relativePath] = rows;
+                    if (rows.length > 0) state.loadedCsvEntries[relativePath] = rows;
                   })
                 );
               }
@@ -1403,7 +1440,7 @@
             await Promise.all(zipPromises);
           } else if (file.name.toLowerCase().endsWith('.csv')) {
             const text = await file.text();
-            loadedCsvEntries[file.name] = safeParseCsv(text);
+            state.loadedCsvEntries[file.name] = safeParseCsv(text);
           }
         }
 
@@ -1415,7 +1452,7 @@
     }
 
     function setupSourceChecklist(defaultChecked = false) {
-      const keys = Object.keys(loadedCsvEntries);
+      const keys = Object.keys(state.loadedCsvEntries);
       if (keys.length === 0) {
         showToast("Nenhum dado de filme encontrado!");
         return;
@@ -1425,15 +1462,15 @@
       container.innerHTML = '';
 
       keys.forEach(key => {
-        const count = loadedCsvEntries[key].length;
+        const count = state.loadedCsvEntries[key].length;
         const cleanName = key.split('/').pop() || key;
         const isChecked = defaultChecked ? 'checked' : '';
 
         const item = document.createElement('label');
         item.className = 'lists-checklist-item';
         item.innerHTML = `
-          <input type="checkbox" name="selected-list" value="${key}" ${isChecked}>
-          <span>${cleanName} (${count} filmes)</span>
+          <input type="checkbox" name="selected-list" value="${esc(key)}" ${isChecked}>
+          <span>${esc(cleanName)} (${count} filmes)</span>
         `;
         container.appendChild(item);
       });
@@ -1450,7 +1487,7 @@
     }
 
     function selectMode(mode) {
-      selectedMode = mode;
+      state.selectedMode = mode;
       document.querySelectorAll('.mode-option').forEach(el => el.classList.remove('active'));
       document.getElementById(`mode-${mode}`)?.classList.add('active');
 
@@ -1479,7 +1516,7 @@
       const uniqueMap = new Map();
 
       selectedSources.forEach(sourceKey => {
-        const rawRows = loadedCsvEntries[sourceKey] || [];
+        const rawRows = state.loadedCsvEntries[sourceKey] || [];
         rawRows.forEach(r => {
           const name = getPropIgnoreCase(r, ['Name', 'Title', 'Film', 'Movie']);
           const yearStr = getPropIgnoreCase(r, ['Year', 'Release Year', 'Release Date']);
@@ -1512,153 +1549,150 @@
       allMovies.sort(() => Math.random() - 0.5);
 
       const sampleOption = document.getElementById('sample-size-select').value;
-      if (sampleOption !== 'all') {
-        const count = parseInt(sampleOption);
-        selectedMoviesList = allMovies.slice(0, Math.min(count, allMovies.length));
-        fullUnselectedPool = allMovies.slice(count);
-      } else {
-        selectedMoviesList = allMovies;
-        fullUnselectedPool = [];
-      }
+      const maxAll = state.selectedMode === 'arcade' ? MAX_ALL.arcade : MAX_ALL.normal;
+      const count = sampleOption === 'all' ? Math.min(allMovies.length, maxAll) : parseInt(sampleOption);
+      state.selectedMoviesList = allMovies.slice(0, Math.min(count, allMovies.length));
+      state.fullUnselectedPool = allMovies.slice(count);
 
       switchView('loading');
 
-      await fetchTmdbPostersAndDetails(selectedMoviesList);
-      saveToStorage();
+      if (state.selectedMode === 'arcade') {
+        await fetchTmdbPostersAndDetails(state.selectedMoviesList);
+        saveToStorage();
+        initArcadePhase([...state.selectedMoviesList]);
+        return;
+      }
+      await fetchTmdbPostersAndDetails(state.selectedMoviesList.slice(0, 2));
+      fetchTmdbPostersAndDetails(state.selectedMoviesList).then(saveToStorage);
+      state.activeQueue = [...state.selectedMoviesList];
+      state.nextQueue = [];
 
-      activeQueue = [...selectedMoviesList];
-      nextQueue = [];
-
-      if (selectedMode === 'ranking') {
-        currentKing = activeQueue.shift();
+      if (state.selectedMode === 'ranking') {
+        state.currentKing = state.activeQueue.shift();
       }
 
       switchView('game');
       renderNextMatch();
     }
 
-    async function fetchTmdbPostersAndDetails(moviesList) {
-      let done = 0;
-      const total = moviesList.length;
+    const yearOf = r => parseInt((r.release_date || '').slice(0, 4)) || 0;
 
-      for (let m of moviesList) {
-        done++;
-        const cacheKey = `${m.name.toLowerCase()}_${m.year}`;
+    async function findTmdbMatch(m) {
+      const q = async y => ((await tmdbFetch(`/3/search/movie?query=${encodeURIComponent(m.name)}${y ? `&year=${y}` : ''}&language=pt-BR`)).results || []);
+      const ok = r => !m.year || Math.abs(yearOf(r) - m.year) <= 1;
+      let res = m.year ? (await q(m.year)).filter(ok) : [];
+      if (!res.length) res = (await q(0)).filter(ok);
+      return res[0] || null;
+    }
 
-        if (tmdbCache[cacheKey]) {
-          Object.assign(m, tmdbCache[cacheKey]);
-        } else {
-          document.getElementById('loading-status-text').innerText = `Carregando mídias e detalhes: ${m.name} (${done}/${total})`;
-          document.getElementById('loading-progress-bar').style.width = `${Math.round((done / total) * 100)}%`;
+    const loadMovie = m => { m._p = m._p || loadOne(m); return m._p; };
 
-          try {
-            const queryYear = m.year ? `&year=${m.year}` : '';
-            const data = await tmdbFetch(`/3/search/movie?query=${encodeURIComponent(m.name)}${queryYear}&language=pt-BR`);
-            
-            if (data.results && data.results.length > 0) {
-              const best = data.results[0];
-              m.poster = best.poster_path ? (TMDB_IMAGE_BASE + best.poster_path) : null;
-              m.titlePtBr = best.title || best.original_title || m.name;
-              m.voteAverage = best.vote_average ? best.vote_average.toFixed(1) : 'N/A';
-              m.overview = best.overview || 'Sinopse não disponível em português.';
+    async function ensureCredits(m) {
+      if (!m.tmdbId || m.director) return;
+      try {
+        const cr = await tmdbFetch(`/3/movie/${m.tmdbId}/credits?language=pt-BR`);
+        const dir = cr.crew?.find(x => x.job === 'Director');
+        m.director = dir ? dir.name : 'Não informado';
+        const cast = cr.cast?.slice(0, 4).map(x => x.name) || [];
+        m.cast = cast.length ? cast.join(', ') : 'Não informado';
+        const c = state.tmdbCache[`${m.name.toLowerCase()}_${m.year}`];
+        if (c) { c.director = m.director; c.cast = m.cast; saveToStorage(); }
+      } catch (e) { m.director = m.cast = 'Não informado'; }
+    }
 
-              const creditData = await tmdbFetch(`/3/movie/${best.id}/credits?language=pt-BR`);
-              if (creditData) {
-                const dirObj = creditData.crew?.find(c => c.job === 'Director');
-                m.director = dirObj ? dirObj.name : 'Não informado';
-
-                const castArr = creditData.cast?.slice(0, 4).map(c => c.name) || [];
-                m.cast = castArr.length > 0 ? castArr.join(', ') : 'Não informado';
-              }
-
-              tmdbCache[cacheKey] = { 
-                poster: m.poster,
-                titlePtBr: m.titlePtBr,
-                voteAverage: m.voteAverage,
-                overview: m.overview,
-                director: m.director,
-                cast: m.cast
-              };
-            }
-          } catch(e) {
-            console.error("ERRO TMDB:", e);
-          }
-          await new Promise(r => setTimeout(r, 40));
-        }
+    async function loadOne(m) {
+      const key = `${m.name.toLowerCase()}_${m.year}`, c = state.tmdbCache[key];
+      if (c && (!c.notFound || Date.now() - c.ts < 6048e5)) {
+        if (!c.notFound) Object.assign(m, c);
+        return;
+      }
+      try {
+        const best = await findTmdbMatch(m);
+        if (!best) { state.tmdbCache[key] = { notFound: true, ts: Date.now() }; return; }
+        m.poster = best.poster_path ? (TMDB_IMAGE_BASE + best.poster_path) : null;
+        m.titlePtBr = best.title || best.original_title || m.name;
+        m.voteAverage = best.vote_average ? best.vote_average.toFixed(1) : 'N/A';
+        m.overview = (best.overview || 'Sinopse não disponível em português.').slice(0, 500);
+        m.tmdbId = best.id;
+        state.tmdbCache[key] = { tmdbId: best.id, poster: m.poster, titlePtBr: m.titlePtBr, voteAverage: m.voteAverage, overview: m.overview, ts: Date.now() };
+      } catch (e) {
+        console.error("ERRO TMDB:", e);
+        if (++tmdbFails === 3) showToast("⚠️ Falha ao buscar dados do TMDB. O jogo continua, mas pode faltar poster/sinopse.");
       }
     }
 
-    function renderNextMatch() {
+    async function fetchTmdbPostersAndDetails(list) {
+      let i = 0, done = 0;
+      const total = list.length;
+      tmdbFails = 0;
+      const worker = async () => {
+        while (i < total) {
+          const m = list[i++];
+          await loadMovie(m);
+          done++;
+          document.getElementById('loading-status-text').innerText = `Carregando filmes: ${done}/${total}`;
+          document.getElementById('loading-progress-bar').style.width = `${Math.round(done / total * 100)}%`;
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(6, total) }, worker));
+    }
+
+    async function renderNextMatch() {
       closeDrawers();
       let isFinalRound = false;
 
-      if (selectedMode === 'arcade') {
-        let currentCandidates = [...activeQueue, ...nextQueue];
-        if (movieA) currentCandidates.push(movieA);
-        if (movieB) currentCandidates.push(movieB);
-
-        const uniqueCandidates = Array.from(new Set(currentCandidates));
-
-        if (uniqueCandidates.length <= 8) {
-          movieA = null;
-          movieB = null;
-          activeQueue = [];
-          nextQueue = [];
-          initArcadePhase(uniqueCandidates.sort(() => Math.random() - 0.5));
-          return;
-        }
-      }
-
-      if (selectedMode === 'tradicional' || selectedMode === 'arcade') {
-        if (activeQueue.length >= 2) {
-          movieA = activeQueue.shift();
-          movieB = activeQueue.shift();
-        } else if (activeQueue.length === 1) {
-          nextQueue.push(activeQueue.shift());
-          activeQueue = [...nextQueue];
-          nextQueue = [];
-          renderNextMatch();
+      if (state.selectedMode === 'tradicional' || state.selectedMode === 'arcade') {
+        if (state.activeQueue.length >= 2) {
+          state.movieA = state.activeQueue.shift();
+          state.movieB = state.activeQueue.shift();
+        } else if (state.activeQueue.length === 1) {
+          state.nextQueue.push(state.activeQueue.shift());
+          state.activeQueue = [...state.nextQueue];
+          state.nextQueue = [];
+          await renderNextMatch();
           return;
         } else {
-          if (nextQueue.length === 1) {
-            showWinner(nextQueue[0]);
+          if (state.nextQueue.length === 1) {
+            showWinner(state.nextQueue[0]);
             return;
           }
-          activeQueue = [...nextQueue];
-          nextQueue = [];
-          renderNextMatch();
+          state.activeQueue = [...state.nextQueue];
+          state.nextQueue = [];
+          await renderNextMatch();
           return;
         }
 
-        const remainingTotal = activeQueue.length + nextQueue.length + 2;
+        const remainingTotal = state.activeQueue.length + state.nextQueue.length + 2;
         document.getElementById('round-info').innerText = `Restam ${remainingTotal} filmes no torneio.`;
         // NOVO: Exibe a roleta quando restarem 4 ou menos filmes no torneio
         if (remainingTotal <= 4) isFinalRound = true;
 
       } else {
-        if (activeQueue.length > 0) {
-          movieA = currentKing;
-          movieB = activeQueue.shift();
-          document.getElementById('round-info').innerText = `Faltam ${activeQueue.length + 1} desafiantes.`;
-          if (activeQueue.length <= 3) isFinalRound = true;
+        if (state.activeQueue.length > 0) {
+          state.movieA = state.currentKing;
+          state.movieB = state.activeQueue.shift();
+          document.getElementById('round-info').innerText = `Faltam ${state.activeQueue.length + 1} desafiantes.`;
         } else {
-          showWinner(currentKing);
+          showWinner(state.currentKing);
           return;
         }
       }
 
       document.getElementById('btn-roulette-final').style.display = isFinalRound ? 'flex' : 'none';
 
-      displayMovieCard(1, movieA);
-      displayMovieCard(2, movieB);
+      state.matchLocked = true;
+      await Promise.all([loadMovie(state.movieA), loadMovie(state.movieB)]);
+      displayMovieCard(1, state.movieA);
+      displayMovieCard(2, state.movieB);
+      state.matchLocked = false;
     }
 
     /* MODO ARCADE RESTRUCTURADO & AGRUPAMENTO DE CLONES */
     function initArcadePhase(movies) {
-      arcadeMovies = [...movies];
-      arcadePicksAllowed = 3;
-      currentActivePower = null;
-      hasExtraSpinCard = false;
+      state.arcadeMovies = [...movies];
+      state.arcadePicksAllowed = 3;
+      state.currentActivePower = null;
+      state.hasExtraSpinCard = false;
 
       switchView('arcade');
       renderArcadeGrid();
@@ -1668,10 +1702,10 @@
     function renderArcadeGrid() {
       const grid = document.getElementById('arcade-movie-grid');
       grid.innerHTML = '';
-      document.getElementById('arcade-count').innerText = arcadeMovies.length;
+      document.getElementById('arcade-count').innerText = state.arcadeMovies.length;
 
       const countsMap = new Map();
-      arcadeMovies.forEach(m => {
+      state.arcadeMovies.forEach(m => {
         const key = m.titlePtBr || m.name;
         if (!countsMap.has(key)) {
           countsMap.set(key, { movie: m, count: 0 });
@@ -1701,12 +1735,12 @@
 
         const cardEl = document.createElement('div');
         cardEl.className = 'arcade-item-large';
-        if (currentActivePower) cardEl.classList.add('selectable');
+        if (state.currentActivePower) cardEl.classList.add('selectable');
 
         cardEl.innerHTML = `
           ${count > 1 ? `<div class="count-badge">x${count}</div>` : ''}
-          <img src="${m.poster || ''}" alt="${m.titlePtBr || m.name}">
-          <div class="arcade-item-large-title" title="${m.titlePtBr || m.name}">${m.titlePtBr || m.name}</div>
+          <img src="${m.poster || ''}" alt="${esc(m.titlePtBr || m.name)}">
+          <div class="arcade-item-large-title" title="${esc(m.titlePtBr || m.name)}">${esc(m.titlePtBr || m.name)}</div>
         `;
 
         cardEl.onclick = () => handleMovieClickInArcade(m);
@@ -1718,7 +1752,7 @@
     function renderArcadeCards() {
       const box = document.getElementById('arcade-cards-box');
       box.innerHTML = '';
-      document.getElementById('arcade-picks-left').innerText = arcadePicksAllowed;
+      document.getElementById('arcade-picks-left').innerText = state.arcadePicksAllowed;
 
       const shuffledCards = [...FULL_POWER_DECK].sort(() => Math.random() - 0.5).slice(0, 5);
 
@@ -1748,19 +1782,19 @@
     function handleCardPick(cardEl, cardData) {
       if (cardEl.classList.contains('flipped')) return;
 
-      if (currentActivePower) {
+      if (state.currentActivePower) {
         showToast("⚠️ Use o poder da carta atual na grade de filmes antes de pegar outra!");
         return;
       }
 
-      if (arcadePicksAllowed <= 0) {
+      if (state.arcadePicksAllowed <= 0) {
         showToast("Sua cota de cartas para esta fase acabou!");
         return;
       }
 
       cardEl.classList.add('flipped');
-      arcadePicksAllowed--;
-      document.getElementById('arcade-picks-left').innerText = arcadePicksAllowed;
+      state.arcadePicksAllowed--;
+      document.getElementById('arcade-picks-left').innerText = state.arcadePicksAllowed;
 
       setTimeout(() => {
         applyPowerCard(cardData);
@@ -1768,64 +1802,68 @@
     }
 
     async function applyPowerCard(card) {
+      const sig = () => [state.arcadeMovies.length, state.fullUnselectedPool.length, state.currentActivePower, state.arcadePicksAllowed, state.hasExtraSpinCard].join('|');
+      const sigBefore = sig();
       const instructionEl = document.getElementById('arcade-mode-instruction');
 
       switch (card.id) {
         case 'eliminate_choice':
-          currentActivePower = 'eliminate_choice';
+          state.currentActivePower = 'eliminate_choice';
           instructionEl.innerText = "🎯 CLIQUE EM UM FILME PARA ELIMINAR";
           showToast("Poder Ativado: Clique em um filme abaixo para eliminá-lo!");
           renderArcadeGrid();
           break;
 
         case 'eliminate_random':
-          if (arcadeMovies.length > 1) {
-            const randIdx = Math.floor(Math.random() * arcadeMovies.length);
-            const removed = arcadeMovies.splice(randIdx, 1)[0];
+          if (state.arcadeMovies.length > 1) {
+            const randIdx = Math.floor(Math.random() * state.arcadeMovies.length);
+            const removed = state.arcadeMovies.splice(randIdx, 1)[0];
             showToast(`⚡ Raio Laser! O filme "${removed.titlePtBr || removed.name}" foi eliminado.`);
             renderArcadeGrid();
           }
           break;
 
         case 'duplicate_choice':
-          currentActivePower = 'duplicate_choice';
+          state.currentActivePower = 'duplicate_choice';
           instructionEl.innerText = "👯 CLIQUE EM UM FILME PARA CLONAR";
           showToast("Poder Ativado: Clique em um filme para duplicar na roleta!");
           renderArcadeGrid();
           break;
 
         case 'double_clone':
-          currentActivePower = 'double_clone';
+          state.currentActivePower = 'double_clone';
           instructionEl.innerText = "✨ CLIQUE EM UM FILME PARA MULTIPLICAR X2";
           showToast("Poder Ativado: Clique em um filme para adicionar +2 cópias!");
           renderArcadeGrid();
           break;
 
         case 'add_random':
-          if (fullUnselectedPool.length > 0) {
-            const added = fullUnselectedPool.shift();
-            await fetchTmdbPostersAndDetails([added]);
-            arcadeMovies.push(added);
-            showToast(`➕ Repescagem! "${added.titlePtBr || added.name}" entrou na grade!`);
+          if (state.fullUnselectedPool.length > 0) {
+            const cand = state.fullUnselectedPool.splice(0, Math.min(3, state.fullUnselectedPool.length));
+            await fetchTmdbPostersAndDetails(cand);
+            cand.sort((a, b) => (parseFloat(b.voteAverage) || 0) - (parseFloat(a.voteAverage) || 0));
+            const added = cand.shift();
+            state.fullUnselectedPool.unshift(...cand);
+            state.arcadeMovies.push(added);
+            showToast(`➕ Repescagem! O melhor de 3 sorteados entrou: "${added.titlePtBr || added.name}" (nota ${added.voteAverage})!`);
             renderArcadeGrid();
           } else {
             showToast("Não há mais filmes sobressalentes para adicionar.");
           }
           break;
-
         case 'extra_card':
-          arcadePicksAllowed += 2;
-          document.getElementById('arcade-picks-left').innerText = arcadePicksAllowed;
+          state.arcadePicksAllowed += 2;
+          document.getElementById('arcade-picks-left').innerText = state.arcadePicksAllowed;
           showToast("🎁 Sorte Grande! Ganhou +2 cartas de poder extras!");
           break;
 
         case 'shuffle':
-          if (arcadeMovies.length > 1 && fullUnselectedPool.length > 0) {
-            const randIdx = Math.floor(Math.random() * arcadeMovies.length);
-            const removed = arcadeMovies.splice(randIdx, 1)[0];
-            const added = fullUnselectedPool.shift();
+          if (state.arcadeMovies.length > 1 && state.fullUnselectedPool.length > 0) {
+            const randIdx = Math.floor(Math.random() * state.arcadeMovies.length);
+            const removed = state.arcadeMovies.splice(randIdx, 1)[0];
+            const added = state.fullUnselectedPool.shift();
             await fetchTmdbPostersAndDetails([added]);
-            arcadeMovies.push(added);
+            state.arcadeMovies.push(added);
             showToast(`🔀 Confusão! Saiu "${removed.titlePtBr || removed.name}" e entrou "${added.titlePtBr || added.name}"!`);
             renderArcadeGrid();
           } else {
@@ -1834,46 +1872,42 @@
           break;
 
         case 'kamikaze':
-          if (arcadeMovies.length > 2) {
-            arcadeMovies.sort(() => Math.random() - 0.5);
-            const r1 = arcadeMovies.pop();
-            const r2 = arcadeMovies.pop();
+          if (state.arcadeMovies.length > 2) {
+            state.arcadeMovies.sort(() => Math.random() - 0.5);
+            const r1 = state.arcadeMovies.pop();
+            const r2 = state.arcadeMovies.pop();
             showToast(`💣 Kamikaze! Eliminou "${r1.titlePtBr || r1.name}" e "${r2.titlePtBr || r2.name}"!`);
             renderArcadeGrid();
           }
           break;
 
         case 'purge_worst':
-          if (arcadeMovies.length > 1) {
-            arcadeMovies.sort((a, b) => (parseFloat(a.voteAverage) || 0) - (parseFloat(b.voteAverage) || 0));
-            const worst = arcadeMovies.shift();
+          if (state.arcadeMovies.length > 1) {
+            const worst = state.arcadeMovies.reduce((a, b) => (parseFloat(b.voteAverage) || 0) < (parseFloat(a.voteAverage) || 0) ? b : a);
+            state.arcadeMovies.splice(state.arcadeMovies.indexOf(worst), 1);
             showToast(`💀 Expurgo! "${worst.titlePtBr || worst.name}" (Nota ${worst.voteAverage}) foi eliminado.`);
             renderArcadeGrid();
           }
           break;
-
         case 'blessing':
-          if (arcadeMovies.length > 0) {
-            arcadeMovies.sort((a, b) => (parseFloat(b.voteAverage) || 0) - (parseFloat(a.voteAverage) || 0));
-            const best = arcadeMovies[0];
-            arcadeMovies.push(best);
+          if (state.arcadeMovies.length > 0) {
+            const best = state.arcadeMovies.reduce((a, b) => (parseFloat(b.voteAverage) || 0) > (parseFloat(a.voteAverage) || 0) ? b : a);
+            state.arcadeMovies.push(best);
             showToast(`⭐ Anjo da Guarda! "${best.titlePtBr || best.name}" (Nota ${best.voteAverage}) foi clonado!`);
             renderArcadeGrid();
           }
           break;
-
         case 'golden_ticket':
-          if (fullUnselectedPool.length >= 1) {
-            const a1 = fullUnselectedPool.shift();
+          if (state.fullUnselectedPool.length >= 1) {
+            const a1 = state.fullUnselectedPool.shift();
             await fetchTmdbPostersAndDetails([a1]);
-            arcadeMovies.push(a1);
-            showToast(`🎟️ Bilhete Dourado! Adicionado "${a1.titlePtBr || a1.name}" à mesa!`);
+            state.arcadeMovies.push(a1, a1);
+            showToast(`🎟️ Bilhete Dourado! "${a1.titlePtBr || a1.name}" entrou com 2 cópias!`);
             renderArcadeGrid();
           }
           break;
-
         case 'swap_destiny':
-          currentActivePower = 'swap_destiny';
+          state.currentActivePower = 'swap_destiny';
           instructionEl.innerText = "🔄 CLIQUE EM UM FILME PARA TROCAR POR OUTRO";
           showToast("Poder Ativado: Clique em um filme para trocá-lo por outro do repositório!");
           renderArcadeGrid();
@@ -1881,11 +1915,11 @@
 
         case 'mirror':
           let cloneCount = 0;
-          const uniqueNames = new Set(arcadeMovies.map(m => m.titlePtBr || m.name));
+          const uniqueNames = new Set(state.arcadeMovies.map(m => m.titlePtBr || m.name));
           uniqueNames.forEach(name => {
-            const matches = arcadeMovies.filter(m => (m.titlePtBr || m.name) === name);
+            const matches = state.arcadeMovies.filter(m => (m.titlePtBr || m.name) === name);
             if (matches.length > 1) {
-              arcadeMovies.push(matches[0]);
+              state.arcadeMovies.push(matches[0]);
               cloneCount++;
             }
           });
@@ -1895,13 +1929,13 @@
 
         case 'anarchy':
           let shuffledCount = 0;
-          const toReplace = Math.min(2, arcadeMovies.length, fullUnselectedPool.length);
+          const toReplace = Math.min(2, state.arcadeMovies.length, state.fullUnselectedPool.length);
           if (toReplace > 0) {
             for (let i = 0; i < toReplace; i++) {
-              arcadeMovies.pop();
-              const newM = fullUnselectedPool.shift();
+              state.arcadeMovies.splice(Math.floor(Math.random() * state.arcadeMovies.length), 1);
+              const newM = state.fullUnselectedPool.shift();
               await fetchTmdbPostersAndDetails([newM]);
-              arcadeMovies.push(newM);
+              state.arcadeMovies.push(newM);
               shuffledCount++;
             }
             showToast(`💥 Anarquia! ${shuffledCount} filmes da mesa foram substituídos por novos!`);
@@ -1911,67 +1945,125 @@
           }
           break;
 
+        case 'underdog': {
+          const w = [...state.arcadeMovies].sort((a, b) => (parseFloat(a.voteAverage) || 0) - (parseFloat(b.voteAverage) || 0))[0];
+          if (w) { state.arcadeMovies.push(w, w); showToast(`🐶 Azarão! "${w.titlePtBr || w.name}" (nota ${w.voteAverage}) ganhou 2 cópias!`); renderArcadeGrid(); }
+          break;
+        }
+        case 'topple': {
+          if (state.arcadeMovies.length > 2) {
+            const best = [...state.arcadeMovies].sort((a, b) => (parseFloat(b.voteAverage) || 0) - (parseFloat(a.voteAverage) || 0))[0];
+            state.arcadeMovies.splice(state.arcadeMovies.indexOf(best), 1);
+            showToast(`👑 Queda do Favorito! "${best.titlePtBr || best.name}" (nota ${best.voteAverage}) caiu.`);
+            renderArcadeGrid();
+          }
+          break;
+        }
+        case 'oldest': {
+          if (state.arcadeMovies.length > 2) {
+            const old = [...state.arcadeMovies].filter(m => m.year).sort((a, b) => a.year - b.year)[0];
+            if (old) { state.arcadeMovies.splice(state.arcadeMovies.indexOf(old), 1); showToast(`🕰️ Faxina do Tempo! "${old.titlePtBr || old.name}" (${old.year}) foi eliminado.`); renderArcadeGrid(); }
+          }
+          break;
+        }
+        case 'coinflip': {
+          const pick = () => state.arcadeMovies[Math.floor(Math.random() * state.arcadeMovies.length)];
+          if (Math.random() < 0.5) {
+            const a = pick(), b = pick();
+            state.arcadeMovies.push(a, b);
+            showToast(`⭐ CARA! Clones para "${a.titlePtBr || a.name}" e "${b.titlePtBr || b.name}"!`);
+          } else if (state.arcadeMovies.length > 2) {
+            const r = state.arcadeMovies.splice(Math.floor(Math.random() * state.arcadeMovies.length), 1)[0];
+            showToast(`💀 COROA! "${r.titlePtBr || r.name}" foi eliminado.`);
+          } else showToast("💀 COROA! Mas a mesa está pequena, você se salvou.");
+          renderArcadeGrid();
+          break;
+        }
+        case 'casino': {
+          const roll = Math.floor(Math.random() * 3);
+          if (roll === 0) {
+            const j = state.arcadeMovies[Math.floor(Math.random() * state.arcadeMovies.length)];
+            state.arcadeMovies.push(j, j, j);
+            showToast(`🎰 JACKPOT! "${j.titlePtBr || j.name}" ganhou 3 cópias!`);
+          } else if (roll === 1 && state.arcadeMovies.length > 4) {
+            state.arcadeMovies.sort(() => Math.random() - 0.5);
+            const r1 = state.arcadeMovies.pop(), r2 = state.arcadeMovies.pop();
+            showToast(`💣 DESASTRE! Perdeu "${r1.titlePtBr || r1.name}" e "${r2.titlePtBr || r2.name}".`);
+          } else if (state.fullUnselectedPool.length > 0) {
+            const add = state.fullUnselectedPool.splice(0, 2);
+            await fetchTmdbPostersAndDetails(add);
+            state.arcadeMovies.push(...add);
+            showToast(`➕ REPESCAGEM! Entraram ${add.map(m => `"${m.titlePtBr || m.name}"`).join(' e ')}.`);
+          } else showToast("🎰 A banca não pagou nada desta vez.");
+          renderArcadeGrid();
+          break;
+        }
         case 'extra_spin':
-          hasExtraSpinCard = true;
+          state.hasExtraSpinCard = true;
           showToast("🎰 Giro Extra Ativado! Um botão para girar a roleta novamente aparecerá no final!");
           break;
+      }
+      if (sig() === sigBefore) {
+        state.arcadePicksAllowed++;
+        document.getElementById('arcade-picks-left').innerText = state.arcadePicksAllowed;
+        showToast("↩️ Carta sem efeito agora: sua escolha foi devolvida!");
       }
     }
 
     async function handleMovieClickInArcade(movie) {
-      if (!currentActivePower) return;
+      if (!state.currentActivePower) return;
 
       const instructionEl = document.getElementById('arcade-mode-instruction');
 
-      if (currentActivePower === 'eliminate_choice') {
-        const idx = arcadeMovies.findIndex(m => m === movie);
-        if (idx !== -1) arcadeMovies.splice(idx, 1);
+      if (state.currentActivePower === 'eliminate_choice') {
+        const idx = state.arcadeMovies.findIndex(m => m === movie);
+        if (idx !== -1) state.arcadeMovies.splice(idx, 1);
         showToast(`🎯 Filme "${movie.titlePtBr || movie.name}" foi eliminado!`);
-      } else if (currentActivePower === 'duplicate_choice') {
-        arcadeMovies.push(movie);
+      } else if (state.currentActivePower === 'duplicate_choice') {
+        state.arcadeMovies.push(movie);
         showToast(`👯 Clone criado! "${movie.titlePtBr || movie.name}" agora possui cópia empilhada!`);
-      } else if (currentActivePower === 'double_clone') {
-        arcadeMovies.push(movie, movie);
+      } else if (state.currentActivePower === 'double_clone') {
+        state.arcadeMovies.push(movie, movie);
         showToast(`✨ Multiplicação! +2 cópias de "${movie.titlePtBr || movie.name}" adicionadas!`);
-      } else if (currentActivePower === 'swap_destiny') {
-        if (fullUnselectedPool.length > 0) {
-          const idx = arcadeMovies.findIndex(m => m === movie);
-          if (idx !== -1) arcadeMovies.splice(idx, 1);
-          const replacement = fullUnselectedPool.shift();
+      } else if (state.currentActivePower === 'swap_destiny') {
+        if (state.fullUnselectedPool.length > 0) {
+          const idx = state.arcadeMovies.findIndex(m => m === movie);
+          if (idx !== -1) state.arcadeMovies.splice(idx, 1);
+          const replacement = state.fullUnselectedPool.shift();
           await fetchTmdbPostersAndDetails([replacement]);
-          arcadeMovies.push(replacement);
+          state.arcadeMovies.push(replacement);
           showToast(`🔄 Troca de Destino! "${movie.titlePtBr || movie.name}" foi trocado por "${replacement.titlePtBr || replacement.name}"!`);
         } else {
           showToast("Não há filmes no repositório para realizar a troca.");
         }
       }
 
-      currentActivePower = null;
+      state.currentActivePower = null;
       instructionEl.innerText = "";
       renderArcadeGrid();
     }
 
     function triggerArcadeFinalRoulette() {
-      if (currentActivePower) {
+      if (state.currentActivePower) {
         showToast("⚠️ Use o poder da carta selecionada antes de girar a roleta!");
         return;
       }
-      if (arcadeMovies.length === 0) {
+      if (state.arcadeMovies.length === 0) {
         showToast("Não sobrou nenhum filme na grade!");
         return;
       }
-      triggerMultiRoulette(arcadeMovies);
+      triggerMultiRoulette(state.arcadeMovies);
     }
 
     async function skipMovie(cardNum) {
       let replacement = null;
 
-      if (fullUnselectedPool.length > 0) {
-        replacement = fullUnselectedPool.shift();
-      } else if (activeQueue.length > 0) {
-        replacement = activeQueue.shift();
-      } else if (nextQueue.length > 0) {
-        replacement = nextQueue.shift();
+      if (state.fullUnselectedPool.length > 0) {
+        replacement = state.fullUnselectedPool.shift();
+      } else if (state.activeQueue.length > 0) {
+        replacement = state.activeQueue.shift();
+      } else if (state.nextQueue.length > 0) {
+        replacement = state.nextQueue.shift();
       }
 
       if (!replacement) {
@@ -1982,11 +2074,11 @@
       await fetchTmdbPostersAndDetails([replacement]);
 
       if (cardNum === 1) {
-        movieA = replacement;
-        displayMovieCard(1, movieA);
+        state.movieA = replacement;
+        displayMovieCard(1, state.movieA);
       } else {
-        movieB = replacement;
-        displayMovieCard(2, movieB);
+        state.movieB = replacement;
+        displayMovieCard(2, state.movieB);
       }
     }
 
@@ -1995,11 +2087,12 @@
       document.getElementById(`m${num}-year`).innerText = movie.year ? `(${movie.year})` : '';
       document.getElementById(`m${num}-rating`).querySelector('span').innerText = movie.voteAverage || 'N/A';
 
-      document.getElementById(`m${num}-director`).innerText = movie.director || 'Não informado';
-      document.getElementById(`m${num}-cast`).innerText = movie.cast || 'Não informado';
+      document.getElementById(`m${num}-director`).innerText = movie.director || (movie.tmdbId ? 'Buscando...' : 'Não informado');
+      document.getElementById(`m${num}-cast`).innerText = movie.cast || (movie.tmdbId ? 'Buscando...' : 'Não informado');
       document.getElementById(`m${num}-overview`).innerText = movie.overview || 'Sinopse não disponível.';
       
       const imgEl = document.getElementById(`m${num}-poster`);
+      imgEl.alt = movie.titlePtBr || movie.name;
       const placeEl = document.getElementById(`m${num}-placeholder`);
 
       if (movie.poster) {
@@ -2023,6 +2116,8 @@
       } else {
         drawer.classList.add('open');
         chevron.style.transform = 'rotate(180deg)';
+        const m = num === 1 ? state.movieA : state.movieB;
+        if (m) ensureCredits(m).then(() => { if ((num === 1 ? state.movieA : state.movieB) === m) displayMovieCard(num, m); });
       }
     }
 
@@ -2035,20 +2130,21 @@
     }
 
     function chooseWinner(choice) {
-      const selected = choice === 1 ? movieA : movieB;
-      if (selectedMode === 'tradicional' || selectedMode === 'arcade') {
-        nextQueue.push(selected);
+      if (state.matchLocked || !state.movieA) return;
+      const selected = choice === 1 ? state.movieA : state.movieB;
+      if (state.selectedMode === 'tradicional' || state.selectedMode === 'arcade') {
+        state.nextQueue.push(selected);
       } else {
-        currentKing = selected;
+        state.currentKing = selected;
       }
       renderNextMatch();
     }
 
     function triggerRoulette() {
       // Coleta todos os filmes restantes na disputa do Mata-Mata
-      let remaining = [...activeQueue, ...nextQueue];
-      if (movieA) remaining.push(movieA);
-      if (movieB) remaining.push(movieB);
+      let remaining = [...state.activeQueue, ...state.nextQueue];
+      if (state.movieA) remaining.push(state.movieA);
+      if (state.movieB) remaining.push(state.movieB);
 
       const uniqueRemaining = Array.from(new Set(remaining));
       triggerMultiRoulette(uniqueRemaining);
@@ -2056,6 +2152,7 @@
 
     /* ROLETA COM GIRO ÚNICO E SUPORTE A GIRO EXTRA OPCIONAL */
     function triggerMultiRoulette(moviesList) {
+      if (moviesList.length === 1) { showWinner(moviesList[0]); return; }
       const modal = document.getElementById('roulette-modal');
       const wheel = document.getElementById('roulette-wheel');
       wheel.innerHTML = '';
@@ -2118,7 +2215,12 @@
         textPath.setAttribute("text-anchor", "middle");
 
         let name = m.titlePtBr || m.name;
-        if (name.length > 18) name = name.substring(0, 16) + '...';
+        const arc = textRadius * (sliceAngle * Math.PI / 180);
+        const fs = arc / (Math.min(name.length, 18) * 0.6) >= 11 ? 11 : 8;
+        const max = Math.floor(arc / (fs * 0.6));
+        if (max < 4) return;
+        if (name.length > max) name = name.slice(0, max - 1) + '…';
+        text.setAttribute("font-size", fs);
         textPath.textContent = name;
 
         text.appendChild(textPath);
@@ -2150,23 +2252,26 @@
     }
 
     function useExtraSpinOption() {
-      hasExtraSpinCard = false;
+      state.hasExtraSpinCard = false;
       document.getElementById('btn-extra-spin-trigger').style.display = 'none';
-      triggerMultiRoulette(arcadeMovies);
+      triggerMultiRoulette(state.arcadeMovies);
     }
 
-    function showWinner(winner) {
-      lastWinnerMovie = winner;
+    async function showWinner(winner) {
+      await loadMovie(winner);
+      state.lastWinnerMovie = winner;
       saveToStorage();
 
       switchView('result');
+      confetti();
 
       document.getElementById('winner-title').innerText = winner.titlePtBr || winner.name;
       document.getElementById('winner-year').innerText = winner.year ? `(${winner.year})` : '';
       document.getElementById('winner-poster').src = winner.poster || '';
+      document.getElementById('winner-poster').alt = winner.titlePtBr || winner.name;
 
       const extraSpinBtn = document.getElementById('btn-extra-spin-trigger');
-      if (hasExtraSpinCard) {
+      if (state.hasExtraSpinCard) {
         extraSpinBtn.style.display = 'flex';
       } else {
         extraSpinBtn.style.display = 'none';
@@ -2189,6 +2294,19 @@
         setupSourceChecklist(false);
       }
     });
+  
+    const actions = { chooseWinner, clearStoredData, closeCustomDeleteModal, confirmDeleteLastWinner, dismissLastWinnerBanner, filterRemoveList, finishSessionAndGoHome, handleFileSelect, openCustomDeleteModal, selectMode, skipMovie, startTournament, toggleDrawer, toggleUseMyFiles, triggerArcadeFinalRoulette, triggerRoulette, useExtraSpinOption };
+    const run = (attr, e) => {
+      const el = e.target.closest(`[${attr}]`);
+      const f = el && actions[el.getAttribute(attr)];
+      if (!f) return;
+      const a = el.dataset.arg;
+      f(a === undefined ? e : (isNaN(a) ? a : Number(a)));
+    };
+    document.addEventListener('click', e => run('data-action', e));
+    document.addEventListener('change', e => run('data-change', e));
+    document.addEventListener('input', e => run('data-input', e));
+})();
   </script>
 </body>
 </html>
