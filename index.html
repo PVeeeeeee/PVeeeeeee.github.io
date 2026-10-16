@@ -870,6 +870,18 @@
     .flip-card-mini{width:155px;height:220px}
     @media (max-width:600px){.flip-card-mini{width:132px;height:195px}}
     #btn-arcade-start-roulette{display:block;margin:.9rem auto 1.4rem}
+    .attr-chip{display:inline-flex;align-items:center;gap:.5rem;margin:.25rem;padding:.45rem .85rem;border:1px solid rgba(255,255,255,.15);border-radius:999px;background:rgba(255,255,255,.04);transition:background .2s}
+    .attr-chip:hover{background:rgba(255,255,255,.12)}
+    .attr-chip.off{opacity:.35}
+    .attr-arrows{display:none;gap:.3rem}
+    .attr-chip:hover .attr-arrows{display:inline-flex}
+    @media (hover:none){.attr-arrows{display:inline-flex}}
+    .attr-btn{border:none;border-radius:6px;padding:.1rem .55rem;cursor:pointer;background:var(--primary,#e50914);color:#fff;font-weight:700}
+    .duel-fx{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:6;font-size:4rem;font-weight:800;border-radius:inherit;animation:duelPop .3s ease-out}
+    .duel-fx small{font-size:1.1rem;margin-top:.2rem}
+    .duel-win{background:rgba(30,160,80,.3);color:#4cff8a}
+    .duel-lose{background:rgba(0,0,0,.62);color:#ff5252;backdrop-filter:grayscale(1)}
+    @keyframes duelPop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
   </style>
 </head>
 <body>
@@ -960,6 +972,11 @@
                 <div><strong>Arcade</strong></div>
                 <small style="color:var(--text-muted)">8 Filmes + Poderes + Roleta</small>
               </div>
+              <div class="mode-option" data-action="selectMode" data-arg="duelo" id="mode-duelo">
+                <i class="fa-solid fa-hand-fist fa-1x" style="margin-bottom:0.3rem"></i>
+                <div><strong>Duelo de Atributos</strong></div>
+                <small style="color:var(--text-muted)">Atributo ▲ maior ou ▼ menor: o outro cai</small>
+              </div>
             </div>
           </div>
 
@@ -991,6 +1008,7 @@
         <h2 id="round-title">QUAL VOCÊ PREFERE?</h2>
         <p id="round-info" style="text-align:center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;"></p>
 
+        <div id="duel-panel" style="display:none; text-align:center; margin:1rem 0;"></div>
         <button type="button" id="btn-roulette-final" class="btn btn-roulette" style="display:none;" data-action="triggerRoulette">
           <i class="fa-solid fa-dharmachakra"></i> Girar Roleta para Decidir o Vencedor!
         </button>
@@ -1153,7 +1171,7 @@
       if (!res.ok) throw new Error(`TMDB proxy HTTP ${res.status}`);
       return res.json();
     }
-    const state = { loadedCsvEntries: {}, fullUnselectedPool: [], selectedMoviesList: [], activeQueue: [], nextQueue: [], currentKing: null, movieA: null, movieB: null, selectedMode: 'tradicional', tmdbCache: {}, lastWinnerMovie: null, arcadeMovies: [], arcadePicksAllowed: 3, currentActivePower: null, hasExtraSpinCard: false, matchLocked: false, arcadeFavs: [], shielded: [], favPhase: false, cursed: new Map(), bet: null, effects: [], rouletteMods: [], spinMods: [], busy: false, nextHand: 2, turn: 0, graveyard: [], prevUnique: [] };
+    const state = { loadedCsvEntries: {}, fullUnselectedPool: [], selectedMoviesList: [], activeQueue: [], nextQueue: [], currentKing: null, movieA: null, movieB: null, selectedMode: 'tradicional', tmdbCache: {}, lastWinnerMovie: null, arcadeMovies: [], arcadePicksAllowed: 3, currentActivePower: null, hasExtraSpinCard: false, matchLocked: false, unlock: false, q: null, arcadeFavs: [], shielded: [], favPhase: false, cursed: new Map(), bet: null, effects: [], rouletteMods: [], spinMods: [], busy: false, nextHand: 2, turn: 0, graveyard: [], prevUnique: [] };
     const STORAGE_KEY = "cinescolhe_data_v3";
 
 
@@ -1660,18 +1678,18 @@
     const loadMovie = m => { m._p = m._p || loadOne(m); return m._p; };
 
     async function ensureExtra(m) {
-      if (m.runtime !== undefined && m.voteCount !== undefined) return;
+      if (m.runtime !== undefined && m.voteCount !== undefined && m.budget !== undefined) return;
       try {
         if (!m.tmdbId) {
           const b = await findTmdbMatch(m);
-          if (!b) { m.runtime = 0; m.voteCount = 0; return; }
+          if (!b) { m.runtime = 0; m.voteCount = 0; m.budget = 0; m.revenue = 0; return; }
           m.tmdbId = b.id; m.voteCount = b.vote_count || 0;
         }
         const d = await tmdbFetch(`/3/movie/${m.tmdbId}?language=pt-BR`);
-        m.runtime = d.runtime || 0; m.voteCount = d.vote_count || m.voteCount || 0;
+        m.runtime = d.runtime || 0; m.voteCount = d.vote_count || m.voteCount || 0; m.budget = d.budget || 0; m.revenue = d.revenue || 0;
         const c = state.tmdbCache[`${m.name.toLowerCase()}_${m.year}`];
-        if (c) Object.assign(c, { tmdbId: m.tmdbId, runtime: m.runtime, voteCount: m.voteCount });
-      } catch (e) { m.runtime = m.runtime || 0; m.voteCount = m.voteCount || 0; }
+        if (c) Object.assign(c, { tmdbId: m.tmdbId, runtime: m.runtime, voteCount: m.voteCount, budget: m.budget, revenue: m.revenue });
+      } catch (e) { m.runtime = m.runtime || 0; m.voteCount = m.voteCount || 0; m.budget = m.budget || 0; m.revenue = m.revenue || 0; }
     }
 
     const ATTRS = {
@@ -1744,11 +1762,61 @@
       await Promise.all(Array.from({ length: Math.min(6, total) }, worker));
     }
 
+    const isDuel = () => state.selectedMode === 'duelo';
+    const DUEL = {
+      rating: { n: 'Nota', icon: '⭐', up: 'maior nota', down: 'menor nota', val: m => parseFloat(m.voteAverage) || 0, f: v => v.toFixed(1) },
+      year: { n: 'Ano', icon: '📅', up: 'mais novo', down: 'mais antigo', val: m => m.year || 0, f: v => v },
+      runtime: { n: 'Duração', icon: '⏱️', up: 'mais longo', down: 'mais curto', val: m => m.runtime || 0, f: v => v + ' min' },
+      budget: { n: 'Orçamento', icon: '💰', up: 'maior orçamento', down: 'menor orçamento', val: m => m.budget || 0, f: v => '$' + (v >= 1e9 ? (v / 1e9).toFixed(2) + 'B' : (v / 1e6).toFixed(1) + 'M') },
+      revenue: { n: 'Bilheteria', icon: '🎟️', up: 'maior bilheteria', down: 'menor bilheteria', val: m => m.revenue || 0, f: v => '$' + (v >= 1e9 ? (v / 1e9).toFixed(2) + 'B' : (v / 1e6).toFixed(1) + 'M') },
+    };
+    function duelWinner(attr, dir, A, B) {
+      const a = DUEL[attr], va = a.val(A), vb = a.val(B);
+      return { a, va, vb, w: va === vb ? 1 : ((dir === 'min' ? va < vb : va > vb) ? 1 : 2) };
+    }
+
+    function duelPick(arg) {
+      if (state.matchLocked || !isDuel() || !state.movieA || state.unlock) return;
+      const [attr, dir] = String(arg).split(':');
+      const r = duelWinner(attr, dir, state.movieA, state.movieB);
+      if (!r.va || !r.vb) { showToast("⚠️ Sem dados desse atributo neste duelo."); return; }
+      state.matchLocked = true;
+      [1, 2].forEach(n => {
+        const box = document.querySelector(`.poster-box[data-arg="${n}"]`);
+        if (!box) return;
+        if (!box.style.position) box.style.position = 'relative';
+        const win = n === r.w, fx = document.createElement('div');
+        fx.className = 'duel-fx ' + (win ? 'duel-win' : 'duel-lose');
+        fx.innerHTML = `<span>${win ? '✓' : '✗'}</span><small>${r.a.f(n === 1 ? r.va : r.vb)}</small>`;
+        box.appendChild(fx);
+        setTimeout(() => fx.remove(), 1400);
+      });
+      const win = r.w === 1 ? state.movieA : state.movieB, lose = r.w === 1 ? state.movieB : state.movieA;
+      sfx('gold');
+      showToast(`⭐ ${r.a.icon} ${dir === 'min' ? '▼' : '▲'}   ✓ ${nmOf(win)}   ✗ ${nmOf(lose)}`);
+      setTimeout(() => { state.matchLocked = false; state.unlock = true; chooseWinner(r.w); }, 1400);
+    }
+
+    async function prepareDuel() {
+      const panel = document.getElementById('duel-panel');
+      if (!isDuel()) { panel.style.display = 'none'; return; }
+      await Promise.all([ensureExtra(state.movieA), ensureExtra(state.movieB)]);
+      panel.style.display = 'block';
+      const ok = Object.keys(DUEL).filter(k => DUEL[k].val(state.movieA) && DUEL[k].val(state.movieB));
+      if (!ok.length) {
+        state.unlock = true;
+        panel.innerHTML = '<small style="color:var(--text-muted)">Sem dados para este duelo: escolha livremente o filme que avança.</small>';
+        return;
+      }
+      panel.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;margin-bottom:0.4rem">Passe o mouse no atributo e escolha ▲ ou ▼. O outro filme é eliminado.</div>' +
+        Object.keys(DUEL).map(k => `<div class="attr-chip${ok.includes(k) ? '' : ' off'}"><span>${DUEL[k].icon} ${DUEL[k].n}</span><span class="attr-arrows"><button type="button" class="attr-btn" data-action="duelPick" data-arg="${k}:max" title="${DUEL[k].up}"${ok.includes(k) ? '' : ' disabled'}>▲</button><button type="button" class="attr-btn" data-action="duelPick" data-arg="${k}:min" title="${DUEL[k].down}"${ok.includes(k) ? '' : ' disabled'}>▼</button></span></div>`).join('');
+    }
+
     async function renderNextMatch() {
       closeDrawers();
       let isFinalRound = false;
 
-      if (state.selectedMode === 'tradicional' || state.selectedMode === 'arcade') {
+      if (state.selectedMode !== 'ranking') {
         if (state.activeQueue.length >= 2) {
           state.movieA = state.activeQueue.shift();
           state.movieB = state.activeQueue.shift();
@@ -1785,12 +1853,14 @@
         }
       }
 
-      document.getElementById('btn-roulette-final').style.display = isFinalRound ? 'flex' : 'none';
+      document.getElementById('btn-roulette-final').style.display = (isFinalRound && !isDuel()) ? 'flex' : 'none';
 
+      state.unlock = false; state.q = null;
       state.matchLocked = true;
       await Promise.all([loadMovie(state.movieA), loadMovie(state.movieB)]);
       displayMovieCard(1, state.movieA);
       displayMovieCard(2, state.movieB);
+      await prepareDuel();
       state.matchLocked = false;
     }
 
@@ -2150,8 +2220,8 @@
 
     function displayMovieCard(num, movie) {
       document.getElementById(`m${num}-title`).innerText = movie.titlePtBr || movie.name;
-      document.getElementById(`m${num}-year`).innerText = movie.year ? `(${movie.year})` : '';
-      document.getElementById(`m${num}-rating`).querySelector('span').innerText = movie.voteAverage || 'N/A';
+      document.getElementById(`m${num}-year`).innerText = isDuel() ? '(????)' : (movie.year ? `(${movie.year})` : '');
+      document.getElementById(`m${num}-rating`).querySelector('span').innerText = isDuel() ? '?' : (movie.voteAverage || 'N/A');
 
       document.getElementById(`m${num}-director`).innerText = movie.director || (movie.tmdbId ? 'Buscando...' : 'Não informado');
       document.getElementById(`m${num}-cast`).innerText = movie.cast || (movie.tmdbId ? 'Buscando...' : 'Não informado');
@@ -2197,9 +2267,11 @@
 
     function chooseWinner(choice) {
       if (state.matchLocked || !state.movieA) return;
+      if (isDuel() && !state.unlock) { showToast("🎯 Clique em um atributo: o maior valor avança e o outro é eliminado."); return; }
+      state.unlock = false;
       sfx('pick');
       const selected = choice === 1 ? state.movieA : state.movieB;
-      if (state.selectedMode === 'tradicional' || state.selectedMode === 'arcade') {
+      if (state.selectedMode !== 'ranking') {
         state.nextQueue.push(selected);
       } else {
         state.currentKing = selected;
@@ -2365,6 +2437,7 @@
     });
   
     const actions = { chooseWinner, clearStoredData, closeCustomDeleteModal, confirmDeleteLastWinner, dismissLastWinnerBanner, filterRemoveList, finishSessionAndGoHome, handleFileSelect, openCustomDeleteModal, selectMode, skipMovie, startTournament, toggleDrawer, toggleUseMyFiles, triggerArcadeFinalRoulette, triggerRoulette, useExtraSpinOption };
+    actions.duelPick = duelPick;
     actions.toggleMute = () => { Sfx.toggle(); updateMuteIcon(); };
     updateMuteIcon();
     const CARD_SEL = '.poster-box, .movie-details, .arcade-item-large, .flip-card-mini';
