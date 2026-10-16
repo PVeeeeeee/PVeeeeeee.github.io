@@ -861,6 +861,8 @@
     .fx-gold{animation:goldGlow .9s;border-radius:12px}
     .confetti-piece{position:fixed;top:-16px;width:9px;height:14px;z-index:1300;pointer-events:none;animation:confettiFall linear forwards}
     @keyframes confettiFall{to{transform:translateY(105vh) rotate(720deg)}}
+    .mute-btn{margin-left:auto;background:none;border:none;color:inherit;font-size:1.15rem;cursor:pointer;opacity:.8;padding:.4rem .6rem}
+    .mute-btn:hover{opacity:1}
   </style>
 </head>
 <body>
@@ -870,6 +872,7 @@
       <i class="fa-solid fa-film"></i>
       <span>CINESCOLHE</span>
     </a>
+    <button class="mute-btn" id="mute-btn" data-action="toggleMute" aria-label="Ligar ou desligar os sons" title="Sons"><i class="fa-solid fa-volume-high"></i></button>
   </header>
 
   <main>
@@ -1173,6 +1176,62 @@
       { id: 'casino', title: 'Cassino', desc: 'Jackpot, desastre ou repescagem. Aposte!', icon: 'fa-dice' }
     ];
 
+    const Sfx = (() => {
+      let ctx, master, armed = false, muted = false;
+      try { muted = localStorage.getItem('cinescolhe_mute') === '1'; } catch (e) {}
+      addEventListener('pointerdown', () => { armed = true; }, { once: true, capture: true });
+      const init = () => {
+        if (!armed) return false;
+        if (!ctx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return false;
+          ctx = new AC(); master = ctx.createGain(); master.gain.value = 0.18; master.connect(ctx.destination);
+        }
+        if (ctx.state === 'suspended') ctx.resume();
+        return true;
+      };
+      const tone = (f, t0, dur, type = 'sine', vol = 1, f2 = null) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = type; o.frequency.setValueAtTime(f, t0);
+        if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + dur + 0.05);
+      };
+      const now = () => ctx.currentTime;
+      const S = {
+        click: () => tone(660, now(), 0.06, 'square', 0.3, 440),
+        swoosh: () => tone(280, now(), 0.18, 'sine', 0.15, 900),
+        pick: () => { const t = now(); tone(520, t, 0.09, 'triangle', 0.8, 780); tone(1040, t + 0.07, 0.12, 'sine', 0.5); },
+        skip: () => tone(420, now(), 0.22, 'sawtooth', 0.45, 140),
+        card: () => { const t = now(); tone(300, t, 0.08, 'square', 0.35, 600); tone(900, t + 0.06, 0.1, 'triangle', 0.5); },
+        gold: () => { const t = now(); [523, 659, 784, 1047].forEach((f, i) => tone(f, t + i * 0.07, 0.16, 'triangle', 0.7)); },
+        hit: () => { const t = now(); tone(220, t, 0.35, 'sawtooth', 0.6, 55); tone(110, t, 0.3, 'square', 0.45, 40); },
+        hover: () => tone(1500, now(), 0.04, 'sine', 0.12, 1800),
+        hoverCard: () => tone(700, now(), 0.07, 'triangle', 0.18, 950),
+        tick: () => tone(1100 + Math.random() * 500, now(), 0.03, 'square', 0.28),
+        fanfare: () => {
+          const t = now();
+          [523, 523, 523].forEach((f, i) => tone(f, t + i * 0.11, 0.14, 'square', 0.45));
+          tone(659, t + 0.36, 0.2, 'square', 0.45);
+          [784, 988, 1175].forEach(f => tone(f, t + 0.58, 0.9, 'triangle', 0.55));
+        }
+      };
+      return {
+        play(n) { if (muted || !init()) return; try { S[n] && S[n](); } catch (e) { console.warn('sfx', e); } },
+        toggle() { muted = !muted; try { localStorage.setItem('cinescolhe_mute', muted ? '1' : '0'); } catch (e) {} if (!muted && init()) S.click(); return muted; },
+        get muted() { return muted; }
+      };
+    })();
+    const sfx = n => Sfx.play(n);
+    function rouletteTicks(ms) {
+      for (let t = 0; t < ms; t += 45 + 260 * Math.pow(t / ms, 2)) setTimeout(() => sfx('tick'), t);
+    }
+    function updateMuteIcon() {
+      const i = document.querySelector('#mute-btn i');
+      if (i) i.className = Sfx.muted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
+    }
     let toastTimer;
     function showToast(message) {
       const t = document.getElementById('arcade-toast');
@@ -1180,7 +1239,7 @@
       t.style.display = 'block';
       const g = document.getElementById('arcade-movie-grid');
       const fx = /^(⚡|💣|💀|🎯|👑|🕰)/.test(message) ? 'fx-hit' : /^(⭐|👯|✨|🎟|➕|🎁|🎰|🐶)/.test(message) ? 'fx-gold' : '';
-      if (fx) { g.classList.remove('fx-hit', 'fx-gold'); void g.offsetWidth; g.classList.add(fx); }
+      if (fx) { sfx(fx === 'fx-hit' ? 'hit' : 'gold'); g.classList.remove('fx-hit', 'fx-gold'); void g.offsetWidth; g.classList.add(fx); }
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => { t.style.display = 'none'; }, 4500);
     }
@@ -1255,6 +1314,7 @@
     }
 
     function switchView(viewId) {
+      sfx('swoosh');
       document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
       document.getElementById(`view-${viewId}`)?.classList.add('active');
 
@@ -1780,6 +1840,7 @@
     }
 
     function handleCardPick(cardEl, cardData) {
+      sfx('card');
       if (cardEl.classList.contains('flipped')) return;
 
       if (state.currentActivePower) {
@@ -2056,6 +2117,7 @@
     }
 
     async function skipMovie(cardNum) {
+      sfx('skip');
       let replacement = null;
 
       if (state.fullUnselectedPool.length > 0) {
@@ -2131,6 +2193,7 @@
 
     function chooseWinner(choice) {
       if (state.matchLocked || !state.movieA) return;
+      sfx('pick');
       const selected = choice === 1 ? state.movieA : state.movieB;
       if (state.selectedMode === 'tradicional' || state.selectedMode === 'arcade') {
         state.nextQueue.push(selected);
@@ -2243,6 +2306,7 @@
 
         wheel.style.transition = 'transform 3.5s cubic-bezier(0.15, 0.99, 0.18, 0.99)';
         wheel.style.transform = `rotate(${targetDeg}deg)`;
+        rouletteTicks(3500);
 
         setTimeout(() => {
           modal.style.display = 'none';
@@ -2264,6 +2328,7 @@
 
       switchView('result');
       confetti();
+      sfx('fanfare');
 
       document.getElementById('winner-title').innerText = winner.titlePtBr || winner.name;
       document.getElementById('winner-year').innerText = winner.year ? `(${winner.year})` : '';
@@ -2296,10 +2361,25 @@
     });
   
     const actions = { chooseWinner, clearStoredData, closeCustomDeleteModal, confirmDeleteLastWinner, dismissLastWinnerBanner, filterRemoveList, finishSessionAndGoHome, handleFileSelect, openCustomDeleteModal, selectMode, skipMovie, startTournament, toggleDrawer, toggleUseMyFiles, triggerArcadeFinalRoulette, triggerRoulette, useExtraSpinOption };
+    actions.toggleMute = () => { Sfx.toggle(); updateMuteIcon(); };
+    updateMuteIcon();
+    const CARD_SEL = '.poster-box, .movie-details, .arcade-item-large, .flip-card-mini';
+    const HOVER_SEL = CARD_SEL + ', button, .mode-option, .lists-checklist-item, .dropzone, .brand';
+    let lastHover = 0;
+    document.addEventListener('pointerover', e => {
+      if (e.pointerType !== 'mouse' || !e.target.closest) return;
+      const el = e.target.closest(HOVER_SEL);
+      if (!el || el.disabled || el.contains(e.relatedTarget)) return;
+      const t = performance.now();
+      if (t - lastHover < 70) return;
+      lastHover = t;
+      sfx(el.matches(CARD_SEL) ? 'hoverCard' : 'hover');
+    });
     const run = (attr, e) => {
       const el = e.target.closest(`[${attr}]`);
       const f = el && actions[el.getAttribute(attr)];
       if (!f) return;
+      if (attr === 'data-action' && !['chooseWinner', 'skipMovie', 'toggleMute'].includes(el.getAttribute(attr))) sfx('click');
       const a = el.dataset.arg;
       f(a === undefined ? e : (isNaN(a) ? a : Number(a)));
     };
