@@ -863,6 +863,13 @@
     @keyframes confettiFall{to{transform:translateY(105vh) rotate(720deg)}}
     .mute-btn{margin-left:auto;background:none;border:none;color:inherit;font-size:1.15rem;cursor:pointer;opacity:.8;padding:.4rem .6rem}
     .mute-btn:hover{opacity:1}
+    .flip-card-mini.revealed .flip-card-mini-inner{transform:rotateY(180deg)}
+    .flip-card-mini.played{opacity:.35;pointer-events:none}
+    .odds-badge{position:absolute;top:4px;left:4px;z-index:3;font-size:.66rem;font-weight:700;background:rgba(0,0,0,.75);border-radius:6px;padding:1px 5px}
+    .arcade-cards-row{display:flex;flex-wrap:wrap;justify-content:center;gap:1rem}
+    .flip-card-mini{width:155px;height:220px}
+    @media (max-width:600px){.flip-card-mini{width:132px;height:195px}}
+    #btn-arcade-start-roulette{display:block;margin:.9rem auto 1.4rem}
   </style>
 </head>
 <body>
@@ -1074,9 +1081,12 @@
 
         <!-- CARTAS NO TOPO (FILEIRA HORIZONTAL COMPACTA) -->
         <h3 style="font-size:0.9rem; text-align:center; color:var(--text-muted); margin-bottom:0.3rem;">
-          Escolha suas cartas de poder (Restantes: <span id="arcade-picks-left" style="color:var(--primary); font-weight:bold;">3</span>):
+          Turno <span id="arcade-picks-left" style="color:var(--primary); font-weight:bold;"> 1</span> — escolha UMA carta ou gire a roleta:
         </h3>
         <div class="arcade-cards-row" id="arcade-cards-box"></div>
+        <button type="button" id="btn-arcade-start-roulette" class="btn btn-roulette" data-action="triggerArcadeFinalRoulette">
+          <i class="fa-solid fa-dharmachakra"></i> Ou gire a roleta (corta 1 cópia)
+        </button>
 
         <!-- FILMES EMBAIXO (GRADE COMPACTA E EQUILIBRADA) -->
         <h3 style="font-size:1rem; text-align:left; color:var(--text-main); margin-bottom:0.6rem; display:flex; justify-content:space-between; align-items:center;">
@@ -1084,10 +1094,6 @@
           <small id="arcade-mode-instruction" style="font-size:0.8rem; color:var(--primary); font-weight:bold;"></small>
         </h3>
         <div class="arcade-smart-grid" id="arcade-movie-grid"></div>
-
-        <button type="button" id="btn-arcade-start-roulette" class="btn btn-roulette" data-action="triggerArcadeFinalRoulette">
-          <i class="fa-solid fa-dharmachakra"></i> Girar Roleta Final!
-        </button>
       </div>
     </section>
 
@@ -1147,33 +1153,39 @@
       if (!res.ok) throw new Error(`TMDB proxy HTTP ${res.status}`);
       return res.json();
     }
-    const state = { loadedCsvEntries: {}, fullUnselectedPool: [], selectedMoviesList: [], activeQueue: [], nextQueue: [], currentKing: null, movieA: null, movieB: null, selectedMode: 'tradicional', tmdbCache: {}, lastWinnerMovie: null, arcadeMovies: [], arcadePicksAllowed: 3, currentActivePower: null, hasExtraSpinCard: false, matchLocked: false };
+    const state = { loadedCsvEntries: {}, fullUnselectedPool: [], selectedMoviesList: [], activeQueue: [], nextQueue: [], currentKing: null, movieA: null, movieB: null, selectedMode: 'tradicional', tmdbCache: {}, lastWinnerMovie: null, arcadeMovies: [], arcadePicksAllowed: 3, currentActivePower: null, hasExtraSpinCard: false, matchLocked: false, arcadeFavs: [], shielded: [], favPhase: false, cursed: new Map(), bet: null, effects: [], rouletteMods: [], spinMods: [], busy: false, nextHand: 2, turn: 0, graveyard: [], prevUnique: [] };
     const STORAGE_KEY = "cinescolhe_data_v3";
 
 
     // MODO ARCADE - BARALHO COMPLETO DE CARTAS
     
     const FULL_POWER_DECK = [
-      { id: 'eliminate_choice', title: 'Eliminar Alvo', desc: 'Clique em 1 filme para eliminar.', icon: 'fa-crosshairs' },
-      { id: 'eliminate_random', title: 'Raio Laser', desc: 'Elimina 1 filme aleatório.', icon: 'fa-bolt' },
-      { id: 'duplicate_choice', title: 'Clonar', desc: 'Clique em 1 filme para duplicar.', icon: 'fa-clone' },
-      { id: 'add_random', title: 'Repescagem', desc: 'Traz o melhor de 3 filmes sorteados do repositório.', icon: 'fa-plus-circle' },
-      { id: 'extra_card', title: 'Sorte Grande', desc: '+2 Cartas extras para escolher!', icon: 'fa-gift' },
-      { id: 'shuffle', title: 'Confusão', desc: 'Troca 1 filme por outro aleatório!', icon: 'fa-random' },
-      { id: 'double_clone', title: 'Multiplicação', desc: 'Clique em 1 filme para criar 2 cópias!', icon: 'fa-copy' },
-      { id: 'kamikaze', title: 'Kamikaze', desc: 'Elimina 2 filmes aleatórios!', icon: 'fa-bomb' },
-      { id: 'purge_worst', title: 'Expurgo', desc: 'Elimina o filme com menor nota TMDB.', icon: 'fa-skull' },
-      { id: 'golden_ticket', title: 'Bilhete Dourado', desc: 'Entra 1 filme novo já com 2 cópias!', icon: 'fa-ticket' },
-      { id: 'swap_destiny', title: 'Troca de Destino', desc: 'Substitui 1 filme por outro novo!', icon: 'fa-right-left' },
-      { id: 'mirror', title: 'Espelho', desc: 'Duplica todos os filmes já clonados!', icon: 'fa-wand-magic-sparkles' },
-      { id: 'anarchy', title: 'Anarquia', desc: 'Embaralha 2 filmes por novos do repositório!', icon: 'fa-burst' },
-      { id: 'extra_spin', title: 'Giro Extra', desc: 'Libera um botão para girar a roleta novamente se quiser!', icon: 'fa-rotate-right' },
-      { id: 'blessing', title: 'Anjo da Guarda', desc: 'Clona o filme com maior nota TMDB.', icon: 'fa-star' },
-      { id: 'underdog', title: 'Azarão', desc: 'Dá 2 cópias ao filme de menor nota!', icon: 'fa-dog' },
-      { id: 'topple', title: 'Queda do Favorito', desc: 'Elimina o filme de maior nota.', icon: 'fa-crown' },
+      { id: 'clone', title: 'Clonar', desc: 'Escolha um filme: +1 cópia.', icon: 'fa-clone' },
+      { id: 'multiply', title: 'Multiplicar', desc: 'Escolha um filme: +2 cópias.', icon: 'fa-xmark' },
+      { id: 'cut', title: 'Corte', desc: 'Escolha um filme: perde 1 cópia.', icon: 'fa-scissors' },
+      { id: 'mirror', title: 'Espelho', desc: 'Filmes com 2+ cópias ganham +1.', icon: 'fa-mirror' },
+      { id: 'level', title: 'Nivelamento', desc: 'Filmes com 3+ cópias perdem 1.', icon: 'fa-scale-balanced' },
+      { id: 'eliminate', title: 'Eliminar', desc: 'Escolha um filme: sai da mesa de vez.', icon: 'fa-skull' },
+      { id: 'cruel', title: 'Sorteio Cruel', desc: 'Elimina um filme aleatório.', icon: 'fa-dice' },
+      { id: 'purge', title: 'Expurgo', desc: 'Elimina o filme de menor nota.', icon: 'fa-trash' },
+      { id: 'fall', title: 'Queda do Favorito', desc: 'O filme de maior nota perde 2 cópias.', icon: 'fa-crown' },
       { id: 'oldest', title: 'Faxina do Tempo', desc: 'Elimina o filme mais antigo.', icon: 'fa-hourglass-half' },
-      { id: 'coinflip', title: 'Cara ou Coroa', desc: 'Cara: 2 clones. Coroa: perde 1 filme.', icon: 'fa-coins' },
-      { id: 'casino', title: 'Cassino', desc: 'Jackpot, desastre ou repescagem. Aposte!', icon: 'fa-dice' }
+      { id: 'marathon', title: 'Maratona Cancelada', desc: 'Elimina o filme mais longo.', icon: 'fa-hourglass-end' },
+      { id: 'repescagem', title: 'Repescagem', desc: 'O último eliminado volta com 1 cópia.', icon: 'fa-heart-pulse' },
+      { id: 'reinforce', title: 'Reforço', desc: 'Entra o melhor de 3 filmes do repositório.', icon: 'fa-user-plus' },
+      { id: 'golden', title: 'Bilhete Dourado', desc: 'Entra 1 filme novo com 2 cópias.', icon: 'fa-ticket' },
+      { id: 'swap', title: 'Troca de Destino', desc: 'Escolha um filme: trocado por um novo.', icon: 'fa-shuffle' },
+      { id: 'shield', title: 'Escudo', desc: 'Protege um filme da próxima perda. Empilha.', icon: 'fa-shield-halved' },
+      { id: 'growth', title: 'Juros', desc: 'Um filme ganha +1 cópia por turno (3 turnos).', icon: 'fa-chart-line' },
+      { id: 'poison', title: 'Veneno', desc: 'Um filme perde 1 cópia por turno (3 turnos).', icon: 'fa-flask-vial' },
+      { id: 'curse', title: 'Maldição', desc: 'Se este filme for eliminado, outro cai junto.', icon: 'fa-ghost' },
+      { id: 'bet', title: 'Aposta', desc: 'Acertou o filme que perde cópia: mão de 3 cartas.', icon: 'fa-dice-d6' },
+      { id: 'rl_double', title: 'Roleta Dupla', desc: 'Próximo giro corta 1 cópia a mais.', icon: 'fa-bullseye' },
+      { id: 'rl_reverse', title: 'Roleta da Bênção', desc: 'Próximo giro dá +2 cópias ao sorteado.', icon: 'fa-wand-magic-sparkles' },
+      { id: 'rl_rig', title: 'Roleta Viciada', desc: 'Próximo giro favorece os 3 de menor nota.', icon: 'fa-magnet' },
+      { id: 'rl_guillotine', title: 'Roleta Guilhotina', desc: 'Próximo giro elimina o sorteado inteiro.', icon: 'fa-gavel' },
+      { id: 'rl_swap', title: 'Roleta da Troca', desc: 'Próximo giro troca o sorteado por um novo.', icon: 'fa-arrows-rotate' },
+      { id: 'quiz', title: 'Quiz Relâmpago', desc: 'Acertou: +2 cópias. Errou: perde 1.', icon: 'fa-brain' }
     ];
 
     const Sfx = (() => {
@@ -1647,6 +1659,40 @@
 
     const loadMovie = m => { m._p = m._p || loadOne(m); return m._p; };
 
+    async function ensureExtra(m) {
+      if (m.runtime !== undefined && m.voteCount !== undefined) return;
+      try {
+        if (!m.tmdbId) {
+          const b = await findTmdbMatch(m);
+          if (!b) { m.runtime = 0; m.voteCount = 0; return; }
+          m.tmdbId = b.id; m.voteCount = b.vote_count || 0;
+        }
+        const d = await tmdbFetch(`/3/movie/${m.tmdbId}?language=pt-BR`);
+        m.runtime = d.runtime || 0; m.voteCount = d.vote_count || m.voteCount || 0;
+        const c = state.tmdbCache[`${m.name.toLowerCase()}_${m.year}`];
+        if (c) Object.assign(c, { tmdbId: m.tmdbId, runtime: m.runtime, voteCount: m.voteCount });
+      } catch (e) { m.runtime = m.runtime || 0; m.voteCount = m.voteCount || 0; }
+    }
+
+    const ATTRS = {
+      oldest: { n: 'mais antigo', k: 'year', min: true, f: v => v },
+      newest: { n: 'mais novo', k: 'year', min: false, f: v => v },
+      longest: { n: 'mais longo', k: 'runtime', min: false, f: v => v + ' min' },
+      shortest: { n: 'mais curto', k: 'runtime', min: true, f: v => v + ' min' }
+    };
+    const DIRECT = {
+      attr_newest_purge: { a: 'newest', purge: true }, attr_marathon: { a: 'longest', purge: true },
+      attr_short_clone: { a: 'shortest', purge: false }
+    };
+    async function extremeOf(attr) {
+      const a = ATTRS[attr], uniq = [...new Set(state.arcadeMovies)];
+      await Promise.all(uniq.map(ensureExtra));
+      const pool = uniq.filter(m => m[a.k] > 0);
+      if (pool.length < 2) return null;
+      const best = pool.reduce((x, y) => (a.min ? y[a.k] < x[a.k] : y[a.k] > x[a.k]) ? y : x);
+      return { a, best, tied: pool.filter(m => m[a.k] === best[a.k]) };
+    }
+
     async function ensureCredits(m) {
       if (!m.tmdbId || m.director) return;
       try {
@@ -1674,7 +1720,8 @@
         m.voteAverage = best.vote_average ? best.vote_average.toFixed(1) : 'N/A';
         m.overview = (best.overview || 'Sinopse não disponível em português.').slice(0, 500);
         m.tmdbId = best.id;
-        state.tmdbCache[key] = { tmdbId: best.id, poster: m.poster, titlePtBr: m.titlePtBr, voteAverage: m.voteAverage, overview: m.overview, ts: Date.now() };
+        m.voteCount = best.vote_count || 0;
+        state.tmdbCache[key] = { tmdbId: best.id, voteCount: m.voteCount, poster: m.poster, titlePtBr: m.titlePtBr, voteAverage: m.voteAverage, overview: m.overview, ts: Date.now() };
       } catch (e) {
         console.error("ERRO TMDB:", e);
         if (++tmdbFails === 3) showToast("⚠️ Falha ao buscar dados do TMDB. O jogo continua, mas pode faltar poster/sinopse.");
@@ -1753,10 +1800,9 @@
       state.arcadePicksAllowed = 3;
       state.currentActivePower = null;
       state.hasExtraSpinCard = false;
-
+      state.arcadeFavs = []; state.shielded = []; state.favPhase = false; state.cursed = new Map(); state.bet = null; state.effects = []; state.rouletteMods = []; state.spinMods = []; state.busy = false; state.nextHand = 2; state.turn = 0; state.graveyard = []; state.prevUnique = [];
       switchView('arcade');
-      renderArcadeGrid();
-      renderArcadeCards();
+      startTurn();
     }
 
     function renderArcadeGrid() {
@@ -1799,6 +1845,7 @@
 
         cardEl.innerHTML = `
           ${count > 1 ? `<div class="count-badge">x${count}</div>` : ''}
+          <div class="odds-badge">${state.arcadeFavs.includes(m) ? '⭐ ' : ''}${state.shielded.includes(m) ? '🛡️ ' : ''}${state.cursed.has(m) ? '💀 ' : ''}${state.bet === m ? '🎲 ' : ''}${state.effects.filter(e => e.movie === m).map(e => e.type === 'growth' ? '📈' : '🧪').join('')} ☠️ ${Math.round(count / state.arcadeMovies.length * 100)}%</div>
           <img src="${m.poster || ''}" alt="${esc(m.titlePtBr || m.name)}">
           <div class="arcade-item-large-title" title="${esc(m.titlePtBr || m.name)}">${esc(m.titlePtBr || m.name)}</div>
         `;
@@ -1809,311 +1856,268 @@
       });
     }
 
+    function turnSig() {
+      return [state.arcadeMovies.length, state.fullUnselectedPool.length, state.effects.length, state.shielded.length, state.cursed.size, state.rouletteMods.length, state.nextHand].join('|');
+    }
+
+    function syncGraveyard() {
+      const cur = new Set(state.arcadeMovies);
+      state.prevUnique.forEach(m => { if (!cur.has(m) && !state.graveyard.includes(m)) state.graveyard.push(m); });
+      state.graveyard = state.graveyard.filter(m => !cur.has(m));
+      state.prevUnique = [...cur];
+    }
+
+    function startTurn() {
+      syncGraveyard();
+      const msgs = [];
+      state.effects = state.effects.filter(e => {
+        if (!state.arcadeMovies.includes(e.movie)) return false;
+        const n = e.movie.titlePtBr || e.movie.name;
+        if (e.type === 'growth') { state.arcadeMovies.push(e.movie); msgs.push(`📈 Juros: "${n}" +1 cópia.`); }
+        else { state.arcadeMovies.splice(state.arcadeMovies.indexOf(e.movie), 1); msgs.push(`🧪 Veneno: "${n}" -1 cópia.`); }
+        e.turns--;
+        return e.turns > 0 && state.arcadeMovies.includes(e.movie);
+      });
+      if (msgs.length) showToast(msgs.join(' '));
+      if (new Set(state.arcadeMovies).size <= 1) { concludeArcade(state.arcadeMovies[0]); return; }
+      state.turn++;
+      state.busy = false;
+      renderArcadeGrid();
+      renderArcadeCards();
+    }
+
     function renderArcadeCards() {
       const box = document.getElementById('arcade-cards-box');
       box.innerHTML = '';
-      document.getElementById('arcade-picks-left').innerText = state.arcadePicksAllowed;
-
-      const shuffledCards = [...FULL_POWER_DECK].sort(() => Math.random() - 0.5).slice(0, 5);
-
-      shuffledCards.forEach((cardData, idx) => {
+      document.getElementById('arcade-picks-left').innerText = ' ' + state.turn;
+      const n = state.nextHand; state.nextHand = 2;
+      [...FULL_POWER_DECK].sort(() => Math.random() - 0.5).slice(0, n).forEach(cardData => {
         const card = document.createElement('div');
-        card.className = 'flip-card-mini';
-        card.innerHTML = `
-          <div class="flip-card-mini-inner">
-            <div class="flip-card-mini-front">
-              <div class="card-back-pattern">
-                <i class="fa-solid fa-gamepad fa-1x" style="opacity:0.6;"></i>
-              </div>
-            </div>
-            <div class="flip-card-mini-back">
-              <i class="fa-solid ${cardData.icon} fa-1x" style="margin-bottom:0.2rem; color:var(--primary)"></i>
-              <strong style="font-size:0.7rem">${cardData.title}</strong>
-              <small style="font-size:0.58rem; color:var(--text-muted); margin-top:0.2rem; line-height:1.1">${cardData.desc}</small>
-            </div>
-          </div>
-        `;
-
+        card.className = 'flip-card-mini revealed';
+        card.innerHTML = `<div class="flip-card-mini-inner"><div class="flip-card-mini-front"></div><div class="flip-card-mini-back"><i class="fa-solid ${cardData.icon} fa-2x" style="margin-bottom:0.4rem; color:var(--primary)"></i><strong style="font-size:1rem">${cardData.title}</strong><small style="font-size:0.76rem; color:var(--text-muted); margin-top:0.35rem; line-height:1.25">${cardData.desc}</small></div></div>`;
         card.onclick = () => handleCardPick(card, cardData);
         box.appendChild(card);
       });
+      if (!state.favPhase) {
+        const mods = state.rouletteMods.map(m => ROULETTE_MODS[m]).join(' + ');
+        document.getElementById('arcade-mode-instruction').innerText = mods ? '🎡 Roleta modificada: ' + mods : '';
+      }
     }
 
-    function handleCardPick(cardEl, cardData) {
+    async function handleCardPick(cardEl, cardData) {
       sfx('card');
-      if (cardEl.classList.contains('flipped')) return;
-
-      if (state.currentActivePower) {
-        showToast("⚠️ Use o poder da carta atual na grade de filmes antes de pegar outra!");
+      if (state.busy || state.currentActivePower || cardEl.classList.contains('played')) return;
+      if (state.favPhase) {
+        if (!state.arcadeFavs.length) { showToast("⭐ Escolha pelo menos 1 filme favorito antes de jogar!"); return; }
+        state.favPhase = false;
+        document.getElementById('arcade-mode-instruction').innerText = "";
+      }
+      state.busy = true;
+      cardEl.classList.add('played');
+      const before = turnSig();
+      await applyPowerCard(cardData);
+      if (state.currentActivePower) return;
+      if (turnSig() === before) {
+        state.busy = false; cardEl.classList.remove('played');
+        showToast("↩️ Carta sem efeito agora: escolha outra opção!");
         return;
       }
-
-      if (state.arcadePicksAllowed <= 0) {
-        showToast("Sua cota de cartas para esta fase acabou!");
-        return;
-      }
-
-      cardEl.classList.add('flipped');
-      state.arcadePicksAllowed--;
-      document.getElementById('arcade-picks-left').innerText = state.arcadePicksAllowed;
-
-      setTimeout(() => {
-        applyPowerCard(cardData);
-      }, 500);
+      startTurn();
     }
+
+    const nmOf = m => m.titlePtBr || m.name;
+    const xUniq = () => [...new Set(state.arcadeMovies)];
+    const xCount = m => state.arcadeMovies.filter(x => x === m).length;
+    const xClone = (m, n = 1) => { for (let i = 0; i < n; i++) state.arcadeMovies.push(m); };
+    const xCut = (m, n = 1) => { for (let i = 0; i < n; i++) { const k = state.arcadeMovies.indexOf(m); if (k >= 0) state.arcadeMovies.splice(k, 1); } };
+    const xElim = m => { state.arcadeMovies = state.arcadeMovies.filter(x => x !== m); };
+    const xRnd = a => a[Math.floor(Math.random() * a.length)];
+    const canLose = () => xUniq().length > 2;
+    const canCut = () => canLose() || xUniq().some(m => xCount(m) > 1);
+    const byRating = (a, b) => (parseFloat(b.voteAverage) || 0) - (parseFloat(a.voteAverage) || 0);
 
     async function applyPowerCard(card) {
-      const sig = () => [state.arcadeMovies.length, state.fullUnselectedPool.length, state.currentActivePower, state.arcadePicksAllowed, state.hasExtraSpinCard].join('|');
-      const sigBefore = sig();
-      const instructionEl = document.getElementById('arcade-mode-instruction');
-
+      const ins = document.getElementById('arcade-mode-instruction');
+      const T = (pa, msg) => { state.currentActivePower = pa; ins.innerText = msg; renderArcadeGrid(); };
       switch (card.id) {
-        case 'eliminate_choice':
-          state.currentActivePower = 'eliminate_choice';
-          instructionEl.innerText = "🎯 CLIQUE EM UM FILME PARA ELIMINAR";
-          showToast("Poder Ativado: Clique em um filme abaixo para eliminá-lo!");
-          renderArcadeGrid();
-          break;
-
-        case 'eliminate_random':
-          if (state.arcadeMovies.length > 1) {
-            const randIdx = Math.floor(Math.random() * state.arcadeMovies.length);
-            const removed = state.arcadeMovies.splice(randIdx, 1)[0];
-            showToast(`⚡ Raio Laser! O filme "${removed.titlePtBr || removed.name}" foi eliminado.`);
-            renderArcadeGrid();
-          }
-          break;
-
-        case 'duplicate_choice':
-          state.currentActivePower = 'duplicate_choice';
-          instructionEl.innerText = "👯 CLIQUE EM UM FILME PARA CLONAR";
-          showToast("Poder Ativado: Clique em um filme para duplicar na roleta!");
-          renderArcadeGrid();
-          break;
-
-        case 'double_clone':
-          state.currentActivePower = 'double_clone';
-          instructionEl.innerText = "✨ CLIQUE EM UM FILME PARA MULTIPLICAR X2";
-          showToast("Poder Ativado: Clique em um filme para adicionar +2 cópias!");
-          renderArcadeGrid();
-          break;
-
-        case 'add_random':
-          if (state.fullUnselectedPool.length > 0) {
-            const cand = state.fullUnselectedPool.splice(0, Math.min(3, state.fullUnselectedPool.length));
-            await fetchTmdbPostersAndDetails(cand);
-            cand.sort((a, b) => (parseFloat(b.voteAverage) || 0) - (parseFloat(a.voteAverage) || 0));
-            const added = cand.shift();
-            state.fullUnselectedPool.unshift(...cand);
-            state.arcadeMovies.push(added);
-            showToast(`➕ Repescagem! O melhor de 3 sorteados entrou: "${added.titlePtBr || added.name}" (nota ${added.voteAverage})!`);
-            renderArcadeGrid();
-          } else {
-            showToast("Não há mais filmes sobressalentes para adicionar.");
-          }
-          break;
-        case 'extra_card':
-          state.arcadePicksAllowed += 2;
-          document.getElementById('arcade-picks-left').innerText = state.arcadePicksAllowed;
-          showToast("🎁 Sorte Grande! Ganhou +2 cartas de poder extras!");
-          break;
-
-        case 'shuffle':
-          if (state.arcadeMovies.length > 1 && state.fullUnselectedPool.length > 0) {
-            const randIdx = Math.floor(Math.random() * state.arcadeMovies.length);
-            const removed = state.arcadeMovies.splice(randIdx, 1)[0];
-            const added = state.fullUnselectedPool.shift();
-            await fetchTmdbPostersAndDetails([added]);
-            state.arcadeMovies.push(added);
-            showToast(`🔀 Confusão! Saiu "${removed.titlePtBr || removed.name}" e entrou "${added.titlePtBr || added.name}"!`);
-            renderArcadeGrid();
-          } else {
-            showToast("Não há filmes suficientes para aplicar Confusão.");
-          }
-          break;
-
-        case 'kamikaze':
-          if (state.arcadeMovies.length > 2) {
-            state.arcadeMovies.sort(() => Math.random() - 0.5);
-            const r1 = state.arcadeMovies.pop();
-            const r2 = state.arcadeMovies.pop();
-            showToast(`💣 Kamikaze! Eliminou "${r1.titlePtBr || r1.name}" e "${r2.titlePtBr || r2.name}"!`);
-            renderArcadeGrid();
-          }
-          break;
-
-        case 'purge_worst':
-          if (state.arcadeMovies.length > 1) {
-            const worst = state.arcadeMovies.reduce((a, b) => (parseFloat(b.voteAverage) || 0) < (parseFloat(a.voteAverage) || 0) ? b : a);
-            state.arcadeMovies.splice(state.arcadeMovies.indexOf(worst), 1);
-            showToast(`💀 Expurgo! "${worst.titlePtBr || worst.name}" (Nota ${worst.voteAverage}) foi eliminado.`);
-            renderArcadeGrid();
-          }
-          break;
-        case 'blessing':
-          if (state.arcadeMovies.length > 0) {
-            const best = state.arcadeMovies.reduce((a, b) => (parseFloat(b.voteAverage) || 0) > (parseFloat(a.voteAverage) || 0) ? b : a);
-            state.arcadeMovies.push(best);
-            showToast(`⭐ Anjo da Guarda! "${best.titlePtBr || best.name}" (Nota ${best.voteAverage}) foi clonado!`);
-            renderArcadeGrid();
-          }
-          break;
-        case 'golden_ticket':
-          if (state.fullUnselectedPool.length >= 1) {
-            const a1 = state.fullUnselectedPool.shift();
-            await fetchTmdbPostersAndDetails([a1]);
-            state.arcadeMovies.push(a1, a1);
-            showToast(`🎟️ Bilhete Dourado! "${a1.titlePtBr || a1.name}" entrou com 2 cópias!`);
-            renderArcadeGrid();
-          }
-          break;
-        case 'swap_destiny':
-          state.currentActivePower = 'swap_destiny';
-          instructionEl.innerText = "🔄 CLIQUE EM UM FILME PARA TROCAR POR OUTRO";
-          showToast("Poder Ativado: Clique em um filme para trocá-lo por outro do repositório!");
-          renderArcadeGrid();
-          break;
-
-        case 'mirror':
-          let cloneCount = 0;
-          const uniqueNames = new Set(state.arcadeMovies.map(m => m.titlePtBr || m.name));
-          uniqueNames.forEach(name => {
-            const matches = state.arcadeMovies.filter(m => (m.titlePtBr || m.name) === name);
-            if (matches.length > 1) {
-              state.arcadeMovies.push(matches[0]);
-              cloneCount++;
-            }
-          });
-          showToast(`✨ Espelho! ${cloneCount > 0 ? cloneCount + ' filmes clonados foram duplicados novamente!' : 'Nenhum filme estava duplicado ainda.'}`);
-          renderArcadeGrid();
-          break;
-
-        case 'anarchy':
-          let shuffledCount = 0;
-          const toReplace = Math.min(2, state.arcadeMovies.length, state.fullUnselectedPool.length);
-          if (toReplace > 0) {
-            for (let i = 0; i < toReplace; i++) {
-              state.arcadeMovies.splice(Math.floor(Math.random() * state.arcadeMovies.length), 1);
-              const newM = state.fullUnselectedPool.shift();
-              await fetchTmdbPostersAndDetails([newM]);
-              state.arcadeMovies.push(newM);
-              shuffledCount++;
-            }
-            showToast(`💥 Anarquia! ${shuffledCount} filmes da mesa foram substituídos por novos!`);
-            renderArcadeGrid();
-          } else {
-            showToast("Não há filmes suficientes no repositório para a Anarquia.");
-          }
-          break;
-
-        case 'underdog': {
-          const w = [...state.arcadeMovies].sort((a, b) => (parseFloat(a.voteAverage) || 0) - (parseFloat(b.voteAverage) || 0))[0];
-          if (w) { state.arcadeMovies.push(w, w); showToast(`🐶 Azarão! "${w.titlePtBr || w.name}" (nota ${w.voteAverage}) ganhou 2 cópias!`); renderArcadeGrid(); }
+        case 'clone': T('clone', "⭐ CLIQUE NO FILME PARA CLONAR (+1 cópia)"); break;
+        case 'multiply': T('multiply', "⭐ CLIQUE NO FILME PARA MULTIPLICAR (+2 cópias)"); break;
+        case 'cut': if (canCut()) T('cut', "✂️ CLIQUE NO FILME QUE PERDE 1 CÓPIA"); break;
+        case 'eliminate': if (canLose()) T('eliminate', "💀 CLIQUE NO FILME A ELIMINAR"); break;
+        case 'swap': if (state.fullUnselectedPool.length) T('swap', "🔄 CLIQUE NO FILME A TROCAR"); break;
+        case 'shield': T('shield', "🛡️ CLIQUE NO FILME A PROTEGER"); break;
+        case 'growth': T('growth', "📈 CLIQUE NO FILME QUE VAI CRESCER (3 turnos)"); break;
+        case 'poison': T('poison', "🧪 CLIQUE NO FILME A ENVENENAR (3 turnos)"); break;
+        case 'curse': T('curse', "👻 CLIQUE NO FILME A AMALDIÇOAR"); break;
+        case 'bet': T('bet', "🎲 CLIQUE NO FILME QUE VAI PERDER CÓPIA NA ROLETA"); break;
+        case 'mirror': {
+          const l = xUniq().filter(m => xCount(m) >= 2);
+          l.forEach(m => xClone(m));
+          if (l.length) showToast(`⭐ Espelho! ${l.length} filme(s) com clone ganharam +1 cópia.`);
           break;
         }
-        case 'topple': {
-          if (state.arcadeMovies.length > 2) {
-            const best = [...state.arcadeMovies].sort((a, b) => (parseFloat(b.voteAverage) || 0) - (parseFloat(a.voteAverage) || 0))[0];
-            state.arcadeMovies.splice(state.arcadeMovies.indexOf(best), 1);
-            showToast(`👑 Queda do Favorito! "${best.titlePtBr || best.name}" (nota ${best.voteAverage}) caiu.`);
-            renderArcadeGrid();
+        case 'level': {
+          const l = xUniq().filter(m => xCount(m) >= 3);
+          l.forEach(m => xCut(m));
+          if (l.length) showToast(`🎯 Nivelamento! ${l.length} filme(s) perderam 1 cópia.`);
+          break;
+        }
+        case 'cruel': if (canLose()) { const m = xRnd(xUniq()); xElim(m); showToast(`💀 Sorteio Cruel! "${nmOf(m)}" foi ELIMINADO!`); } break;
+        case 'purge': if (canLose()) { const m = xUniq().sort(byRating).pop(); xElim(m); showToast(`💀 Expurgo! "${nmOf(m)}" (nota ${m.voteAverage}) foi ELIMINADO!`); } break;
+        case 'fall': {
+          const m = xUniq().sort(byRating)[0];
+          if (m && (xCount(m) > 2 || canLose())) { xCut(m, 2); showToast(`🎯 Queda do Favorito! "${nmOf(m)}" ${xCount(m) ? 'perdeu 2 cópias' : 'foi ELIMINADO'}.`); }
+          break;
+        }
+        case 'oldest': case 'marathon': {
+          const r = await extremeOf(card.id === 'oldest' ? 'oldest' : 'longest');
+          if (r && canLose()) { xElim(r.best); showToast(`🕰️ "${nmOf(r.best)}" (${r.a.f(r.best[r.a.k])}) é o ${r.a.n}: ELIMINADO!`); }
+          break;
+        }
+        case 'repescagem': {
+          syncGraveyard();
+          const b = state.graveyard.pop();
+          if (b) { xClone(b); showToast(`⭐ 🧟 Repescagem! "${nmOf(b)}" voltou com 1 cópia!`); } else showToast("Ninguém foi eliminado ainda.");
+          break;
+        }
+        case 'reinforce': case 'golden': {
+          if (!state.fullUnselectedPool.length) break;
+          const cand = state.fullUnselectedPool.splice(0, card.id === 'golden' ? 1 : Math.min(3, state.fullUnselectedPool.length));
+          await fetchTmdbPostersAndDetails(cand);
+          cand.sort(byRating);
+          const a = cand.shift();
+          state.fullUnselectedPool.unshift(...cand);
+          xClone(a, card.id === 'golden' ? 2 : 1);
+          showToast(`➕ "${nmOf(a)}" (nota ${a.voteAverage}) entrou na mesa com ${card.id === 'golden' ? 2 : 1} cópia(s)!`);
+          break;
+        }
+        case 'rl_double': case 'rl_reverse': case 'rl_rig': case 'rl_guillotine': case 'rl_swap': {
+          const k = card.id.slice(3);
+          state.rouletteMods.push(k);
+          showToast(`✨ 🎡 Roleta ${ROULETTE_MODS[k]} ativada para o próximo giro!`);
+          break;
+        }
+        case 'quiz': {
+          for (const at of ['oldest', 'newest', 'longest', 'shortest'].sort(() => Math.random() - 0.5)) {
+            if (await extremeOf(at)) { state.quizAttr = at; T('quiz', `🧠 QUIZ: qual é o filme ${ATTRS[at].n.toUpperCase()} da mesa? Clique no palpite.`); break; }
           }
           break;
         }
-        case 'oldest': {
-          if (state.arcadeMovies.length > 2) {
-            const old = [...state.arcadeMovies].filter(m => m.year).sort((a, b) => a.year - b.year)[0];
-            if (old) { state.arcadeMovies.splice(state.arcadeMovies.indexOf(old), 1); showToast(`🕰️ Faxina do Tempo! "${old.titlePtBr || old.name}" (${old.year}) foi eliminado.`); renderArcadeGrid(); }
-          }
-          break;
-        }
-        case 'coinflip': {
-          const pick = () => state.arcadeMovies[Math.floor(Math.random() * state.arcadeMovies.length)];
-          if (Math.random() < 0.5) {
-            const a = pick(), b = pick();
-            state.arcadeMovies.push(a, b);
-            showToast(`⭐ CARA! Clones para "${a.titlePtBr || a.name}" e "${b.titlePtBr || b.name}"!`);
-          } else if (state.arcadeMovies.length > 2) {
-            const r = state.arcadeMovies.splice(Math.floor(Math.random() * state.arcadeMovies.length), 1)[0];
-            showToast(`💀 COROA! "${r.titlePtBr || r.name}" foi eliminado.`);
-          } else showToast("💀 COROA! Mas a mesa está pequena, você se salvou.");
-          renderArcadeGrid();
-          break;
-        }
-        case 'casino': {
-          const roll = Math.floor(Math.random() * 3);
-          if (roll === 0) {
-            const j = state.arcadeMovies[Math.floor(Math.random() * state.arcadeMovies.length)];
-            state.arcadeMovies.push(j, j, j);
-            showToast(`🎰 JACKPOT! "${j.titlePtBr || j.name}" ganhou 3 cópias!`);
-          } else if (roll === 1 && state.arcadeMovies.length > 4) {
-            state.arcadeMovies.sort(() => Math.random() - 0.5);
-            const r1 = state.arcadeMovies.pop(), r2 = state.arcadeMovies.pop();
-            showToast(`💣 DESASTRE! Perdeu "${r1.titlePtBr || r1.name}" e "${r2.titlePtBr || r2.name}".`);
-          } else if (state.fullUnselectedPool.length > 0) {
-            const add = state.fullUnselectedPool.splice(0, 2);
-            await fetchTmdbPostersAndDetails(add);
-            state.arcadeMovies.push(...add);
-            showToast(`➕ REPESCAGEM! Entraram ${add.map(m => `"${m.titlePtBr || m.name}"`).join(' e ')}.`);
-          } else showToast("🎰 A banca não pagou nada desta vez.");
-          renderArcadeGrid();
-          break;
-        }
-        case 'extra_spin':
-          state.hasExtraSpinCard = true;
-          showToast("🎰 Giro Extra Ativado! Um botão para girar a roleta novamente aparecerá no final!");
-          break;
-      }
-      if (sig() === sigBefore) {
-        state.arcadePicksAllowed++;
-        document.getElementById('arcade-picks-left').innerText = state.arcadePicksAllowed;
-        showToast("↩️ Carta sem efeito agora: sua escolha foi devolvida!");
       }
     }
 
     async function handleMovieClickInArcade(movie) {
-      if (!state.currentActivePower) return;
-
-      const instructionEl = document.getElementById('arcade-mode-instruction');
-
-      if (state.currentActivePower === 'eliminate_choice') {
-        const idx = state.arcadeMovies.findIndex(m => m === movie);
-        if (idx !== -1) state.arcadeMovies.splice(idx, 1);
-        showToast(`🎯 Filme "${movie.titlePtBr || movie.name}" foi eliminado!`);
-      } else if (state.currentActivePower === 'duplicate_choice') {
-        state.arcadeMovies.push(movie);
-        showToast(`👯 Clone criado! "${movie.titlePtBr || movie.name}" agora possui cópia empilhada!`);
-      } else if (state.currentActivePower === 'double_clone') {
-        state.arcadeMovies.push(movie, movie);
-        showToast(`✨ Multiplicação! +2 cópias de "${movie.titlePtBr || movie.name}" adicionadas!`);
-      } else if (state.currentActivePower === 'swap_destiny') {
-        if (state.fullUnselectedPool.length > 0) {
-          const idx = state.arcadeMovies.findIndex(m => m === movie);
-          if (idx !== -1) state.arcadeMovies.splice(idx, 1);
-          const replacement = state.fullUnselectedPool.shift();
-          await fetchTmdbPostersAndDetails([replacement]);
-          state.arcadeMovies.push(replacement);
-          showToast(`🔄 Troca de Destino! "${movie.titlePtBr || movie.name}" foi trocado por "${replacement.titlePtBr || replacement.name}"!`);
-        } else {
-          showToast("Não há filmes no repositório para realizar a troca.");
+      const pa = state.currentActivePower;
+      if (!pa) return;
+      const n = nmOf(movie);
+      switch (pa) {
+        case 'clone': xClone(movie); showToast(`⭐ "${n}" ganhou +1 cópia!`); break;
+        case 'multiply': xClone(movie, 2); showToast(`⭐ "${n}" ganhou +2 cópias!`); break;
+        case 'cut':
+          if (xCount(movie) === 1 && !canLose()) { showToast("Restam só 2 filmes: escolha um com mais de 1 cópia."); return; }
+          xCut(movie); showToast(xCount(movie) ? `🎯 "${n}" perdeu 1 cópia.` : `💀 "${n}" foi ELIMINADO (era a última cópia)!`); break;
+        case 'eliminate':
+          if (!canLose()) { showToast("Restam só 2 filmes."); return; }
+          xElim(movie); showToast(`💀 "${n}" foi ELIMINADO!`); break;
+        case 'swap': {
+          const nw = state.fullUnselectedPool.shift(), c = xCount(movie);
+          await fetchTmdbPostersAndDetails([nw]);
+          xElim(movie); xClone(nw, c);
+          showToast(`➕ "${n}" saiu e "${nmOf(nw)}" entrou com ${c} cópia(s)!`); break;
+        }
+        case 'shield': state.shielded.push(movie); showToast(`✨ 🛡️ "${n}" está protegido da próxima perda!`); break;
+        case 'growth': case 'poison':
+          state.effects.push({ type: pa, movie, turns: 3 });
+          showToast(`${pa === 'growth' ? '📈 Juros' : '🧪 Veneno'} em "${n}" por 3 turnos!`); break;
+        case 'curse': state.cursed.set(movie, 'random'); showToast(`💀 "${n}" foi amaldiçoado: se cair, leva outro junto!`); break;
+        case 'bet': state.bet = movie; showToast(`✨ 🎲 Aposta em "${n}"! Se ele perder cópia na roleta, próxima mão com 3 cartas.`); break;
+        case 'quiz': {
+          const r = await extremeOf(state.quizAttr);
+          if (r && r.tied.includes(movie)) { xClone(movie, 2); showToast(`⭐ 🧠 ACERTOU! "${n}" é o ${r.a.n} (${r.a.f(movie[r.a.k])}): +2 cópias!`); }
+          else if (r) {
+            if (xCount(movie) > 1 || canLose()) xCut(movie);
+            showToast(`💀 ERROU! O ${r.a.n} era "${nmOf(r.best)}" (${r.a.f(r.best[r.a.k])}). "${n}" ${xCount(movie) ? 'perdeu 1 cópia' : 'foi ELIMINADO'}.`);
+          }
+          break;
         }
       }
-
       state.currentActivePower = null;
-      instructionEl.innerText = "";
+      document.getElementById('arcade-mode-instruction').innerText = "";
       renderArcadeGrid();
+      startTurn();
+    }
+
+    function loadStats() { try { return JSON.parse(localStorage.getItem('cinescolhe_stats')) || {}; } catch (e) { return {}; } }
+    function saveStats(st) { try { localStorage.setItem('cinescolhe_stats', JSON.stringify(st)); } catch (e) {} }
+
+    const ROULETTE_MODS = { double: 'Dupla', guillotine: 'Guilhotina', reverse: 'Bênção', rig: 'Viciada', swap: 'Troca' };
+
+    function concludeArcade(w) {
+      w = w || state.prevUnique[0];
+      showWinner(w);
+      if (state.arcadeFavs.length) {
+        const st = loadStats(), ok = state.arcadeFavs.includes(w);
+        st.streak = ok ? (st.streak || 0) + 1 : 0; st.favWins = (st.favWins || 0) + (ok ? 1 : 0); saveStats(st);
+        setTimeout(() => showToast(ok ? `🎉 Seu favorito sobreviveu! Sequência: ${st.streak} (total ${st.favWins}, apostas certas: ${st.bets || 0})` : "Seu favorito caiu... o destino escolheu outro. Sequência zerada."), 900);
+      }
+    }
+
+    async function onRouletteResult(winner) {
+      if (state.selectedMode !== 'arcade') { showWinner(winner); return; }
+      const mods = state.spinMods || [], msgs = [];
+      const nm = m => m.titlePtBr || m.name;
+      const wasShielded = state.shielded.includes(winner);
+      const knockOut = m => {
+        if (state.shielded.includes(m)) { state.shielded.splice(state.shielded.indexOf(m), 1); msgs.push(`✨ 🛡️ "${nm(m)}" resistiu!`); return; }
+        const i = state.arcadeMovies.indexOf(m);
+        if (i >= 0) state.arcadeMovies.splice(i, 1);
+        msgs.push(state.arcadeMovies.includes(m) ? `🎯 "${nm(m)}" perdeu 1 cópia (ainda na mesa).` : `💀 "${nm(m)}" foi ELIMINADO!`);
+        const kind = state.cursed.get(m);
+        const others = [...new Set(state.arcadeMovies)].filter(x => x !== m);
+        if (kind && others.length) {
+          const v = kind === 'best' ? others.sort((a, b) => (parseFloat(b.voteAverage) || 0) - (parseFloat(a.voteAverage) || 0))[0] : others[Math.floor(Math.random() * others.length)];
+          state.arcadeMovies.splice(state.arcadeMovies.indexOf(v), 1);
+          msgs.push(`${kind === 'best' ? 'Armadilha' : 'Maldição'}: "${nm(v)}" ${state.arcadeMovies.includes(v) ? 'perdeu 1 cópia' : 'foi ELIMINADO'}!`);
+        }
+        if (!state.arcadeMovies.includes(m)) state.cursed.delete(m);
+      };
+      let eliminated = false;
+      if (mods.includes('reverse')) {
+        state.arcadeMovies.push(winner, winner);
+        msgs.push(`✨ 🎡 Bênção! "${nm(winner)}" ganhou 2 cópias!`);
+      } else if (mods.includes('swap') && state.fullUnselectedPool.length) {
+        const nw = state.fullUnselectedPool.shift();
+        await fetchTmdbPostersAndDetails([nw]);
+        state.arcadeMovies.splice(state.arcadeMovies.indexOf(winner), 1, nw);
+        msgs.push(`➕ 🎡 Troca! "${nm(winner)}" saiu e "${nm(nw)}" entrou!`);
+      } else {
+        eliminated = !wasShielded;
+        knockOut(winner);
+        if (mods.includes('guillotine') && !wasShielded) { state.arcadeMovies = state.arcadeMovies.filter(x => x !== winner); msgs.push('🪓 Guilhotina: todas as cópias saíram!'); }
+        for (let i = mods.filter(x => x === 'double').length; i > 0 && new Set(state.arcadeMovies).size > 1; i--) {
+          knockOut(state.arcadeMovies[Math.floor(Math.random() * state.arcadeMovies.length)]);
+        }
+      }
+      if (state.bet === winner && eliminated) {
+        const st = loadStats(); st.bets = (st.bets || 0) + 1; saveStats(st);
+        state.nextHand = 3; msgs.push('🎲 Aposta certa: próxima mão com 3 cartas!');
+      }
+      state.bet = null; state.spinMods = [];
+      showToast(msgs.join(' '));
+      startTurn();
     }
 
     function triggerArcadeFinalRoulette() {
-      if (state.currentActivePower) {
-        showToast("⚠️ Use o poder da carta selecionada antes de girar a roleta!");
-        return;
+      if (state.busy || state.currentActivePower) { showToast("⚠️ Termine a ação atual antes de girar a roleta!"); return; }
+      if (state.arcadeMovies.length === 0) return;
+      state.busy = true; state.favPhase = false;
+      document.getElementById('arcade-mode-instruction').innerText = "";
+      state.spinMods = state.rouletteMods; state.rouletteMods = [];
+      const list = [...state.arcadeMovies];
+      if (state.spinMods.includes('rig')) {
+        [...new Set(list)].sort((a, b) => (parseFloat(a.voteAverage) || 0) - (parseFloat(b.voteAverage) || 0)).slice(0, 3).forEach(m => list.push(m, m));
       }
-      if (state.arcadeMovies.length === 0) {
-        showToast("Não sobrou nenhum filme na grade!");
-        return;
-      }
-      triggerMultiRoulette(state.arcadeMovies);
+      triggerMultiRoulette(list);
     }
 
     async function skipMovie(cardNum) {
@@ -2310,7 +2314,7 @@
 
         setTimeout(() => {
           modal.style.display = 'none';
-          showWinner(winner);
+          onRouletteResult(winner);
         }, 3800);
       }, 100);
     }
