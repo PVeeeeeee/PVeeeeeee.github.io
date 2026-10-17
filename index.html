@@ -870,18 +870,31 @@
     .flip-card-mini{width:155px;height:220px}
     @media (max-width:600px){.flip-card-mini{width:132px;height:195px}}
     #btn-arcade-start-roulette{display:block;margin:.9rem auto 1.4rem}
-    .attr-chip{display:inline-flex;align-items:center;gap:.5rem;margin:.25rem;padding:.45rem .85rem;border:1px solid rgba(255,255,255,.15);border-radius:999px;background:rgba(255,255,255,.04);transition:background .2s}
+    .duel-wrap{max-width:760px;margin:1rem auto;padding:1rem 1.1rem;border:1px solid rgba(255,255,255,.1);border-radius:16px;background:rgba(255,255,255,.03)}
+    .duel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem;font-size:.9rem}
+    .duel-head span{color:var(--text-muted)}
+    .duel-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:.6rem}
+    .duel-hint{margin-top:.7rem;font-size:.78rem;color:var(--text-muted)}
+    .attr-ico{font-size:1.6rem}
+    .attr-name{font-size:.85rem;font-weight:600}
+    .attr-state{font-size:.7rem;color:var(--text-muted)}
+    .attr-chip.used{opacity:.35}
+    .attr-chip.used .attr-name{text-decoration:line-through}
+    .attr-chip.luck{border-style:dashed}
+    .attr-chip{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.25rem;min-height:92px;padding:.6rem .5rem;border:1px solid rgba(255,255,255,.15);border-radius:14px;background:rgba(255,255,255,.04);transition:background .2s,transform .15s}
     .attr-chip:hover{background:rgba(255,255,255,.12)}
     .attr-chip.off{opacity:.35}
-    .attr-arrows{display:none;gap:.3rem}
-    .attr-chip:hover .attr-arrows{display:inline-flex}
-    @media (hover:none){.attr-arrows{display:inline-flex}}
+    .attr-arrows{display:inline-flex;gap:.3rem;visibility:hidden}
+    .attr-chip:hover .attr-arrows{visibility:visible}
+    .attr-chip:hover{transform:translateY(-2px)}
+    @media (hover:none){.attr-arrows{visibility:visible}}
     .attr-btn{border:none;border-radius:6px;padding:.1rem .55rem;cursor:pointer;background:var(--primary,#e50914);color:#fff;font-weight:700}
     .duel-fx{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:6;font-size:4rem;font-weight:800;border-radius:inherit;animation:duelPop .3s ease-out}
     .duel-fx small{font-size:1.1rem;margin-top:.2rem}
     .duel-win{background:rgba(30,160,80,.3);color:#4cff8a}
     .duel-lose{background:rgba(0,0,0,.62);color:#ff5252;backdrop-filter:grayscale(1)}
     @keyframes duelPop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+    .luck-beam{box-shadow:0 0 0 4px #4cff8a,0 0 30px 10px rgba(76,255,138,.65);border-radius:12px;transition:box-shadow .05s}
   </style>
 </head>
 <body>
@@ -946,6 +959,7 @@
           <div class="form-group" id="sample-size-group">
             <label for="sample-size-select"><i class="fa-solid fa-dice"></i> Quantidade de Filmes Sorteados:</label>
             <select id="sample-size-select">
+              <option value="7" hidden>7 Filmes (Duelo)</option>
               <option value="8">Top 8 Filmes (Mata-Mata Curto)</option>
               <option value="16" selected>Top 16 Filmes (Torneio Padrão)</option>
               <option value="32">Top 32 Filmes (Torneio Longo)</option>
@@ -975,7 +989,7 @@
               <div class="mode-option" data-action="selectMode" data-arg="duelo" id="mode-duelo">
                 <i class="fa-solid fa-hand-fist fa-1x" style="margin-bottom:0.3rem"></i>
                 <div><strong>Duelo de Atributos</strong></div>
-                <small style="color:var(--text-muted)">Atributo ▲ maior ou ▼ menor: o outro cai</small>
+                <small style="color:var(--text-muted)">7 filmes · cada atributo vale 1 vez + 1 sorte</small>
               </div>
             </div>
           </div>
@@ -1171,7 +1185,7 @@
       if (!res.ok) throw new Error(`TMDB proxy HTTP ${res.status}`);
       return res.json();
     }
-    const state = { loadedCsvEntries: {}, fullUnselectedPool: [], selectedMoviesList: [], activeQueue: [], nextQueue: [], currentKing: null, movieA: null, movieB: null, selectedMode: 'tradicional', tmdbCache: {}, lastWinnerMovie: null, arcadeMovies: [], arcadePicksAllowed: 3, currentActivePower: null, hasExtraSpinCard: false, matchLocked: false, unlock: false, q: null, arcadeFavs: [], shielded: [], favPhase: false, cursed: new Map(), bet: null, effects: [], rouletteMods: [], spinMods: [], busy: false, nextHand: 2, turn: 0, graveyard: [], prevUnique: [] };
+    const state = { loadedCsvEntries: {}, fullUnselectedPool: [], selectedMoviesList: [], activeQueue: [], nextQueue: [], currentKing: null, movieA: null, movieB: null, selectedMode: 'tradicional', tmdbCache: {}, lastWinnerMovie: null, arcadeMovies: [], arcadePicksAllowed: 3, currentActivePower: null, hasExtraSpinCard: false, matchLocked: false, unlock: false, q: null, duelUsed: new Set(), luckUsed: false, duelN: 0, arcadeFavs: [], shielded: [], favPhase: false, cursed: new Map(), bet: null, effects: [], rouletteMods: [], spinMods: [], busy: false, nextHand: 2, turn: 0, graveyard: [], prevUnique: [] };
     const STORAGE_KEY = "cinescolhe_data_v3";
 
 
@@ -1240,6 +1254,9 @@
         hit: () => { const t = now(); tone(220, t, 0.35, 'sawtooth', 0.6, 55); tone(110, t, 0.3, 'square', 0.45, 40); },
         hover: () => tone(1500, now(), 0.04, 'sine', 0.12, 1800),
         hoverCard: () => tone(700, now(), 0.07, 'triangle', 0.18, 950),
+        beam: p => tone(1600 - 1000 * (p || 0), now(), 0.06, 'square', 0.32),
+        reveal: () => tone(300, now(), 0.3, 'sine', 0.4, 1000),
+        land: () => { const t = now(); tone(660, t, 0.12, 'triangle', 0.7); tone(990, t + 0.1, 0.35, 'triangle', 0.7); },
         tick: () => tone(1100 + Math.random() * 500, now(), 0.03, 'square', 0.28),
         fanfare: () => {
           const t = now();
@@ -1249,12 +1266,12 @@
         }
       };
       return {
-        play(n) { if (muted || !init()) return; try { S[n] && S[n](); } catch (e) { console.warn('sfx', e); } },
+        play(n, a) { if (muted || !init()) return; try { S[n] && S[n](a); } catch (e) { console.warn('sfx', e); } },
         toggle() { muted = !muted; try { localStorage.setItem('cinescolhe_mute', muted ? '1' : '0'); } catch (e) {} if (!muted && init()) S.click(); return muted; },
         get muted() { return muted; }
       };
     })();
-    const sfx = n => Sfx.play(n);
+    const sfx = (n, a) => Sfx.play(n, a);
     function rouletteTicks(ms) {
       for (let t = 0; t < ms; t += 45 + 260 * Math.pow(t / ms, 2)) setTimeout(() => sfx('tick'), t);
     }
@@ -1584,17 +1601,19 @@
       const sampleSelect = document.getElementById('sample-size-select');
       const sampleGroup = document.getElementById('sample-size-group');
 
-      if (mode === 'arcade') {
-        sampleSelect.value = '8';
+      if (mode === 'arcade' || mode === 'duelo') {
+        sampleSelect.value = mode === 'duelo' ? '7' : '8';
         sampleGroup.style.opacity = '0.5';
         sampleSelect.disabled = true;
       } else {
+        if (sampleSelect.value === '7') sampleSelect.value = '16';
         sampleGroup.style.opacity = '1';
         sampleSelect.disabled = false;
       }
     }
 
     async function startTournament() {
+      state.duelUsed = new Set(); state.luckUsed = false; state.duelN = 0;
       const checkedBoxes = Array.from(document.querySelectorAll('input[name="selected-list"]:checked'));
       const selectedSources = checkedBoxes.map(cb => cb.value);
 
@@ -1640,11 +1659,18 @@
 
       const sampleOption = document.getElementById('sample-size-select').value;
       const maxAll = state.selectedMode === 'arcade' ? MAX_ALL.arcade : MAX_ALL.normal;
-      const count = sampleOption === 'all' ? Math.min(allMovies.length, maxAll) : parseInt(sampleOption);
+      const count = state.selectedMode === 'duelo' ? 7 : sampleOption === 'all' ? Math.min(allMovies.length, maxAll) : parseInt(sampleOption);
       state.selectedMoviesList = allMovies.slice(0, Math.min(count, allMovies.length));
       state.fullUnselectedPool = allMovies.slice(count);
 
       switchView('loading');
+
+      if (state.selectedMode === 'duelo') {
+        const picked = await pickCompleteMovies(allMovies, 7);
+        if (picked.length < 2) { showToast("⚠️ Poucos filmes com todos os dados (nota, ano, duração, orçamento e bilheteria). Marque mais listas."); switchView('setup'); return; }
+        state.selectedMoviesList = picked; state.fullUnselectedPool = []; state.duelTotal = picked.length - 1;
+        if (picked.length < 7) showToast(`Só ${picked.length} filmes têm todos os dados: o duelo terá ${picked.length - 1} rodadas.`);
+      }
 
       if (state.selectedMode === 'arcade') {
         await fetchTmdbPostersAndDetails(state.selectedMoviesList);
@@ -1657,7 +1683,7 @@
       state.activeQueue = [...state.selectedMoviesList];
       state.nextQueue = [];
 
-      if (state.selectedMode === 'ranking') {
+      if (kingMode()) {
         state.currentKing = state.activeQueue.shift();
       }
 
@@ -1762,7 +1788,23 @@
       await Promise.all(Array.from({ length: Math.min(6, total) }, worker));
     }
 
+    const dataComplete = m => parseFloat(m.voteAverage) > 0 && m.year > 0 && m.runtime > 0 && m.budget > 0 && m.revenue > 0;
+    async function pickCompleteMovies(list, n) {
+      const ok = [], rest = [...list]; let tried = 0;
+      while (ok.length < n && rest.length && tried < 90) {
+        const batch = rest.splice(0, Math.max(6, n - ok.length));
+        tried += batch.length;
+        await Promise.all(batch.map(async m => { await loadMovie(m); await ensureExtra(m); }));
+        batch.filter(dataComplete).forEach(m => { if (ok.length < n) ok.push(m); });
+        document.getElementById('loading-status-text').innerText = `Procurando filmes com dados completos: ${ok.length}/${n}`;
+        document.getElementById('loading-progress-bar').style.width = `${Math.round(ok.length / n * 100)}%`;
+      }
+      saveToStorage();
+      return ok;
+    }
+
     const isDuel = () => state.selectedMode === 'duelo';
+    const kingMode = () => state.selectedMode === 'ranking' || state.selectedMode === 'duelo';
     const DUEL = {
       rating: { n: 'Nota', icon: '⭐', up: 'maior nota', down: 'menor nota', val: m => parseFloat(m.voteAverage) || 0, f: v => v.toFixed(1) },
       year: { n: 'Ano', icon: '📅', up: 'mais novo', down: 'mais antigo', val: m => m.year || 0, f: v => v },
@@ -1775,26 +1817,58 @@
       return { a, va, vb, w: va === vb ? 1 : ((dir === 'min' ? va < vb : va > vb) ? 1 : 2) };
     }
 
-    function duelPick(arg) {
+    function duelPick(arg, forced) {
       if (state.matchLocked || !isDuel() || !state.movieA || state.unlock) return;
-      const [attr, dir] = String(arg).split(':');
-      const r = duelWinner(attr, dir, state.movieA, state.movieB);
-      if (!r.va || !r.vb) { showToast("⚠️ Sem dados desse atributo neste duelo."); return; }
+      let r, attr, dir, luck = arg === 'luck';
+      if (luck) {
+        if (state.luckUsed && !forced) return;
+        r = { a: { icon: '🎲', f: () => '' }, w: Math.random() < 0.5 ? 1 : 2 };
+        state.luckUsed = true;
+      } else {
+        [attr, dir] = String(arg).split(':');
+        if (state.duelUsed.has(attr)) return;
+        r = duelWinner(attr, dir, state.movieA, state.movieB);
+        if (!r.va || !r.vb) { showToast("⚠️ Sem dados desse atributo neste duelo."); return; }
+        state.duelUsed.add(attr);
+      }
+      state.duelN++;
       state.matchLocked = true;
-      [1, 2].forEach(n => {
-        const box = document.querySelector(`.poster-box[data-arg="${n}"]`);
-        if (!box) return;
-        if (!box.style.position) box.style.position = 'relative';
-        const win = n === r.w, fx = document.createElement('div');
-        fx.className = 'duel-fx ' + (win ? 'duel-win' : 'duel-lose');
-        fx.innerHTML = `<span>${win ? '✓' : '✗'}</span><small>${r.a.f(n === 1 ? r.va : r.vb)}</small>`;
-        box.appendChild(fx);
-        setTimeout(() => fx.remove(), 1400);
-      });
       const win = r.w === 1 ? state.movieA : state.movieB, lose = r.w === 1 ? state.movieB : state.movieA;
-      sfx('gold');
-      showToast(`⭐ ${r.a.icon} ${dir === 'min' ? '▼' : '▲'}   ✓ ${nmOf(win)}   ✗ ${nmOf(lose)}`);
-      setTimeout(() => { state.matchLocked = false; state.unlock = true; chooseWinner(r.w); }, 1400);
+      const land = () => {
+        [1, 2].forEach(n => {
+          const box = document.querySelector(`.poster-box[data-arg="${n}"]`);
+          if (!box) return;
+          box.classList.remove('luck-beam');
+          if (!box.style.position) box.style.position = 'relative';
+          const won = n === r.w, fx = document.createElement('div');
+          fx.className = 'duel-fx ' + (won ? 'duel-win' : 'duel-lose');
+          fx.innerHTML = `<span>${won ? '✓' : '✗'}</span><small>${luck ? '🎲' : r.a.f(n === 1 ? r.va : r.vb)}</small>`;
+          box.appendChild(fx);
+          setTimeout(() => fx.remove(), 1400);
+        });
+        sfx('land'); sfx('hit');
+        showToast(`${forced ? '🎲 Sem alternativas: sorteio automático' : '⭐ ' + r.a.icon + ' ' + (luck ? '' : (dir === 'min' ? '▼' : '▲'))}   ✓ ${nmOf(win)}   ✗ ${nmOf(lose)}`);
+        setTimeout(() => { state.matchLocked = false; state.unlock = true; chooseWinner(r.w); }, 1400);
+      };
+      if (luck) runBeam(r.w, land); else { sfx('reveal'); setTimeout(land, 350); }
+    }
+
+    function runBeam(w, done) {
+      const boxes = [1, 2].map(n => document.querySelector(`.poster-box[data-arg="${n}"]`));
+      const d = [];
+      for (let x = 65; x < 430; x *= 1.17) d.push(x);
+      const L = d.length, s0 = ((w - 1) + (L - 1)) % 2;
+      let t = 0;
+      d.forEach((dur, i) => {
+        setTimeout(() => {
+          boxes.forEach(b => b && b.classList.remove('luck-beam'));
+          const b = boxes[(s0 + i) % 2];
+          if (b) b.classList.add('luck-beam');
+          sfx('beam', i / (L - 1));
+        }, t);
+        t += dur;
+      });
+      setTimeout(done, t + 450);
     }
 
     async function prepareDuel() {
@@ -1802,21 +1876,30 @@
       if (!isDuel()) { panel.style.display = 'none'; return; }
       await Promise.all([ensureExtra(state.movieA), ensureExtra(state.movieB)]);
       panel.style.display = 'block';
-      const ok = Object.keys(DUEL).filter(k => DUEL[k].val(state.movieA) && DUEL[k].val(state.movieB));
-      if (!ok.length) {
-        state.unlock = true;
-        panel.innerHTML = '<small style="color:var(--text-muted)">Sem dados para este duelo: escolha livremente o filme que avança.</small>';
+      const keys = Object.keys(DUEL);
+      const can = k => !state.duelUsed.has(k) && DUEL[k].val(state.movieA) && DUEL[k].val(state.movieB);
+      const left = keys.filter(k => !state.duelUsed.has(k)).length;
+      if (!keys.some(can) && state.luckUsed) {
+        const challenger = state.movieB;
+        panel.innerHTML = `<div class="duel-wrap"><div class="duel-head"><strong>Duelo ${state.duelN + 1} de ${state.duelTotal || 6}</strong><span>sem alternativas</span></div><div class="duel-hint">🎲 Nenhum atributo disponível: este duelo será decidido automaticamente por sorteio.</div></div>`;
+        setTimeout(() => { if (state.movieB === challenger && !state.matchLocked) duelPick('luck', true); }, 1200);
         return;
       }
-      panel.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;margin-bottom:0.4rem">Passe o mouse no atributo e escolha ▲ ou ▼. O outro filme é eliminado.</div>' +
-        Object.keys(DUEL).map(k => `<div class="attr-chip${ok.includes(k) ? '' : ' off'}"><span>${DUEL[k].icon} ${DUEL[k].n}</span><span class="attr-arrows"><button type="button" class="attr-btn" data-action="duelPick" data-arg="${k}:max" title="${DUEL[k].up}"${ok.includes(k) ? '' : ' disabled'}>▲</button><button type="button" class="attr-btn" data-action="duelPick" data-arg="${k}:min" title="${DUEL[k].down}"${ok.includes(k) ? '' : ' disabled'}>▼</button></span></div>`).join('');
+      const chips = keys.map(k => {
+        const used = state.duelUsed.has(k), on = can(k);
+        return `<div class="attr-chip${used ? ' used' : (on ? '' : ' off')}"><span class="attr-ico">${DUEL[k].icon}</span><span class="attr-name">${DUEL[k].n}</span>` +
+          (used ? '<span class="attr-state">usado</span>' : `<span class="attr-arrows"><button type="button" class="attr-btn" data-action="duelPick" data-arg="${k}:max" title="${DUEL[k].up}"${on ? '' : ' disabled'}>▲</button><button type="button" class="attr-btn" data-action="duelPick" data-arg="${k}:min" title="${DUEL[k].down}"${on ? '' : ' disabled'}>▼</button></span>`) + '</div>';
+      }).join('');
+      const luck = `<div class="attr-chip luck${state.luckUsed ? ' used' : ''}"><span class="attr-ico">🎲</span><span class="attr-name">Sorte</span>` +
+        (state.luckUsed ? '<span class="attr-state">usada</span>' : '<span class="attr-arrows"><button type="button" class="attr-btn" data-action="duelPick" data-arg="luck" title="Cara ou coroa">sortear</button></span>') + '</div>';
+      panel.innerHTML = `<div class="duel-wrap"><div class="duel-head"><strong>Duelo ${state.duelN + 1} de ${state.duelTotal || 6}</strong><span>${left} atributo(s) · ${state.luckUsed ? 'sorte usada' : '1 sorte'}</span></div><div class="duel-grid">${chips}${luck}</div><div class="duel-hint">Passe o mouse e escolha ▲ maior ou ▼ menor. O outro filme é eliminado.</div></div>`;
     }
 
     async function renderNextMatch() {
       closeDrawers();
       let isFinalRound = false;
 
-      if (state.selectedMode !== 'ranking') {
+      if (!kingMode()) {
         if (state.activeQueue.length >= 2) {
           state.movieA = state.activeQueue.shift();
           state.movieB = state.activeQueue.shift();
@@ -2271,7 +2354,7 @@
       state.unlock = false;
       sfx('pick');
       const selected = choice === 1 ? state.movieA : state.movieB;
-      if (state.selectedMode !== 'ranking') {
+      if (!kingMode()) {
         state.nextQueue.push(selected);
       } else {
         state.currentKing = selected;
