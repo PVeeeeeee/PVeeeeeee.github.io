@@ -895,6 +895,146 @@
     .duel-lose{background:rgba(0,0,0,.62);color:#ff5252;backdrop-filter:grayscale(1)}
     @keyframes duelPop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
     .luck-beam{box-shadow:0 0 0 4px #4cff8a,0 0 30px 10px rgba(76,255,138,.65);border-radius:12px;transition:box-shadow .05s}
+
+    /* =========================================================
+       MOBILE (celular na vertical) — mesmo layout, textos maiores
+       ========================================================= */
+    html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    main { overflow-x: clip; }
+
+    /* Em telas de toque, não deixa o "hover" ficar preso depois do toque */
+    @media (hover: none) {
+      .movie-card:hover, .mode-option:hover, .flip-card-mini:hover,
+      .arcade-item-wrapper:hover, .attr-chip:hover, .btn-roulette:hover, .btn-extra-spin:hover {
+        transform: none;
+      }
+      .movie-card:hover { box-shadow: none; border-color: var(--border-color); }
+    }
+
+    @media (max-width: 650px) {
+      /* Escala geral: tudo que usa rem cresce ~12% (16px -> 18px) */
+      html { font-size: 112.5%; }
+      body { line-height: 1.55; }
+
+      header { padding: 0.6rem 1rem; }
+      .brand { font-size: 1.25rem; }
+      .mute-btn { font-size: 1.35rem; padding: 0.5rem 0.7rem; }
+
+      main { padding: 0.85rem; }
+      .card-panel { padding: 1.1rem; margin-bottom: 1rem; }
+
+      h1 { font-size: 1.7rem; line-height: 1.2; overflow-wrap: anywhere; }
+      h2 { font-size: 1.3rem; line-height: 1.25; }
+      h3 { font-size: 1.1rem; line-height: 1.3; }
+
+      /* Campos: 16px+ evita o zoom automático do iOS ao focar */
+      select, input[type="text"] { font-size: 1rem; padding: 0.85rem; min-height: 48px; }
+      .form-group label { font-size: 1rem; line-height: 1.35; }
+
+      .btn { font-size: 1.05rem; padding: 1rem 1.2rem; min-height: 52px; }
+      .btn-roulette { font-size: 1.05rem; }
+
+      /* Setup */
+      .dropzone { padding: 1.5rem 1rem; }
+      .dropzone p { font-size: 0.9rem !important; }
+      .checkbox-container { padding: 0.9rem; align-items: flex-start; font-size: 0.98rem; line-height: 1.4; }
+      .checkbox-container input[type="checkbox"] { width: 22px; height: 22px; margin-top: 2px; flex-shrink: 0; }
+      .lists-checklist-box { max-height: 240px; gap: 0.2rem; }
+      .lists-checklist-item { font-size: 1rem; padding: 0.55rem 0.2rem; line-height: 1.3; }
+      .lists-checklist-item input { width: 22px; height: 22px; flex-shrink: 0; }
+      .storage-badge { font-size: 0.9rem; }
+
+      .modes-grid { gap: 0.6rem; }
+      .mode-option { padding: 0.9rem 0.8rem; }
+      .mode-option strong { font-size: 1.05rem; }
+      .mode-option small { font-size: 0.88rem; line-height: 1.35; display: block; margin-top: 0.15rem; }
+
+      /* Banner do último vencedor */
+      .last-winner-banner { padding: 0.85rem; gap: 0.8rem; }
+      .last-winner-poster { width: 56px; height: 82px; }
+      .last-winner-info { font-size: 0.9rem; line-height: 1.35; }
+      .last-winner-title { font-size: 1rem; line-height: 1.25; }
+      .last-winner-actions { gap: 0.4rem; margin-top: 0.4rem; }
+      .btn-mini { font-size: 0.85rem; padding: 0.5rem 0.75rem; min-height: 40px; border-radius: 6px; }
+
+      /* Jogo 1v1 */
+      #round-info { font-size: 1rem !important; }
+      #view-game .card-panel { padding: 0.8rem 0.6rem; }
+      .comparison-container { grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: 1rem; position: relative; align-items: start; }
+      .vs-badge { position: absolute; left: 50%; top: 7rem; transform: translateX(-50%); margin: 0 !important; width: 46px; height: 46px; font-size: 1.1rem; z-index: 20; background: #2a0c10; box-shadow: 0 0 0 4px var(--bg-card); }
+      .rating-badge { font-size: 0.9rem; padding: 3px 7px; top: 8px; right: 8px; }
+      .movie-card { border-width: 2px; }
+      .movie-details { padding: 0.7rem 0.6rem; gap: 0.2rem; }
+      .movie-title { font-size: 1.02rem; line-height: 1.25; overflow-wrap: anywhere; }
+      .movie-meta { font-size: 0.92rem; }
+      .info-drawer-toggle { font-size: 0.88rem; padding: 0.6rem 0.4rem; min-height: 48px; flex-wrap: wrap; text-align: center; line-height: 1.2; }
+      .info-drawer-content { font-size: 0.95rem; line-height: 1.5; }
+      .info-drawer-content.open { max-height: 55vh; padding: 0.7rem; }
+      .drawer-section { margin-bottom: 0.9rem; }
+      .btn-skip { font-size: 0.88rem; line-height: 1.2; padding: 0.7rem 0.4rem; min-height: 48px; margin-top: 0; border-radius: 0; border-left: 0; border-right: 0; border-bottom: 0; }
+
+      /* Duelo de atributos */
+      .duel-wrap { padding: 0.9rem; border-radius: 14px; }
+      .duel-head { font-size: 1rem; flex-wrap: wrap; gap: 0.3rem; }
+      .duel-grid { grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
+      .attr-chip { min-height: 104px; padding: 0.7rem 0.5rem; }
+      .attr-ico { font-size: 1.9rem; }
+      .attr-name { font-size: 1rem; text-align: center; line-height: 1.2; }
+      .attr-state { font-size: 0.85rem; }
+      .attr-arrows { gap: 0.5rem; }
+      .attr-btn { font-size: 1rem; padding: 0.4rem 0.9rem; min-height: 40px; min-width: 44px; border-radius: 8px; }
+      .duel-hint { font-size: 0.88rem; line-height: 1.4; }
+      .duel-fx { font-size: 3.2rem; }
+      .duel-fx small { font-size: 1.1rem; }
+
+      /* Arcade: cartas de poder (2 por linha, texto legível) */
+      #view-arcade h2 { font-size: 1.3rem !important; }
+      #view-arcade h3 { font-size: 1rem !important; line-height: 1.35; }
+      .arcade-cards-row { gap: 0.7rem; margin: 0.8rem 0 1.2rem; }
+      .flip-card-mini { width: calc(50% - 0.35rem); max-width: 190px; height: auto; aspect-ratio: 5 / 7; }
+      .flip-card-mini-back { padding: 0.6rem; }
+      .flip-card-mini-back strong { font-size: 1.05rem !important; line-height: 1.2; }
+      .flip-card-mini-back small { font-size: 0.88rem !important; line-height: 1.3 !important; margin-top: 0.4rem !important; }
+      .flip-card-mini-back i.fa-2x { font-size: 1.6em; }
+      #btn-arcade-start-roulette { width: 100%; }
+
+      /* Arcade: grade de filmes (2 colunas, título pode quebrar em 2 linhas) */
+      .arcade-smart-grid { grid-template-columns: repeat(2, 1fr); gap: 0.9rem; }
+      .arcade-item-large-title {
+        font-size: 0.95rem; line-height: 1.25; padding: 0.5rem 0.4rem;
+        white-space: normal; display: -webkit-box;
+        -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        min-height: calc(2 * 1.25em + 1rem);
+      }
+      .count-badge { font-size: 0.9rem; padding: 2px 8px; }
+      .odds-badge { font-size: 0.8rem; padding: 2px 6px; }
+      #arcade-mode-instruction { font-size: 0.9rem !important; }
+
+      /* Aviso (toast) */
+      .arcade-toast { font-size: 1rem; line-height: 1.4; max-width: 94%; padding: 0.85rem 1rem; top: 64px; }
+
+      /* Roleta */
+      .modal-overlay > h2 { font-size: 1.2rem; padding: 0 1rem; text-align: center; }
+      .roulette-wheel-container { width: min(88vw, 400px); height: min(88vw, 400px); }
+
+      /* Modais */
+      .modal-box { width: 94%; padding: 1.2rem; max-height: 90vh; overflow-y: auto; }
+      .remove-list-item { font-size: 1rem; padding: 0.75rem 0.5rem; gap: 0.6rem; line-height: 1.3; }
+      #remove-list-container { max-height: 45vh !important; }
+
+      /* Vencedor */
+      .winner-poster { width: min(72vw, 280px); }
+      #winner-title { font-size: 1.6rem; }
+      #winner-year { font-size: 1.05rem; }
+    }
+
+    /* Celulares bem estreitos */
+    @media (max-width: 360px) {
+      html { font-size: 106%; }
+      h1 { font-size: 1.5rem; }
+      main { padding: 0.65rem; }
+      .card-panel { padding: 0.9rem; }
+    }
   </style>
 </head>
 <body>
